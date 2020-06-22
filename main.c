@@ -1,11 +1,8 @@
-// solitaire.cpp : This file contains the 'main' function. Program execution
-// begins and ends there.
-//
-
 #include <memory.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 // utility functions
 
@@ -167,8 +164,6 @@ pile *make_pile() {
 
 pile *make_deck() {
   pile *deck = make_pile();
-  // deck->cards = mallocz(sizeof(card*) * CARD_COUNT);
-  // deck->num_cards = 0;
   for (int rank = 0; rank < RANK_COUNT; rank++) {
     for (int suit = 0; suit < SUIT_COUNT; suit++) {
       deck->cards[deck->num_cards++] = make_card_ptr(suit, rank);
@@ -288,14 +283,14 @@ pile *make_pile() {
 }
 
 void fill_deck(pile *pile) {
-  /*for (int rank = 0; rank < RANK_COUNT; rank++) {
+  for (int rank = 0; rank < RANK_COUNT; rank++) {
           for (int suit = 0; suit < SUIT_COUNT; suit++) {
                   push(pile, make_card_ptr(suit, rank));
           }
-  }*/
-  for (int rank = 0; rank < RANK_8; rank++) {
-    push(pile, make_card_ptr(SUIT_HEART, rank));
   }
+  //for (int rank = 0; rank < RANK_8; rank++) {
+  //  push(pile, make_card_ptr(SUIT_HEART, rank));
+  //}
 }
 #endif
 
@@ -323,9 +318,11 @@ typedef struct game_state {
 
 game_state *make_game_state() {
   game_state *state = mallocz(sizeof(game_state));
+  state->piles = mallocz(sizeof(pile *) * PILE_COUNT);
   for (int pile_idx = 0; pile_idx < PILE_COUNT; pile_idx++) {
     state->piles[pile_idx] = make_pile();
   }
+  return state;
 }
 
 void test_cards() {
@@ -387,7 +384,6 @@ void insert(pile *pile, card *card, int idx) {
   card_node *pre_tail = pile->head;
   for (int i = 0; i < idx; i++)
     pre_tail = pre_tail->next;
-  card_node *tail = pre_tail->next;
   card_node *card_node = make_node(card);
   card_node->next = pre_tail->next;
   pre_tail->next = card_node;
@@ -395,10 +391,9 @@ void insert(pile *pile, card *card, int idx) {
 }
 
 void shuffle_pile(pile *pile) {
-  // N*2 times
   int shuffle_times = pile->num_cards * 10;
   for (int i = 0; i < shuffle_times; i++) {
-    // pick n-th card and prepend to the head
+    // unshift a card and insert to random place
     int idx = rand() % pile->num_cards-1;
     card_ptr card = shift(pile);
     insert(pile, card, idx);
@@ -411,18 +406,12 @@ void shuffle_pile(pile *pile) {
   print_card_ptr(x);                                                           \
   printf("\n");
 
-int main() {
-  srand(time(NULL));
+void test_pile_operations(){
   pile *initial_deck = make_pile();
   fill_deck(initial_deck);
   print_deck(initial_deck);
   print_pile_ptrs(initial_deck);
 
-  // shuffle
-  printf("\nshuffled:\n");
-  shuffle_pile(initial_deck);
-  print_deck(initial_deck);
-  return;
 
   printf("\npop\n");
   card_ptr popped_card = pop(initial_deck);
@@ -463,7 +452,22 @@ int main() {
   print_deck(initial_deck);
   print_pile_ptrs(initial_deck);
 
-  printf("boo");
+}
 
+int main() {
+  srand(time(NULL));
+
+  //prepare the game statei
+  game_state *state = make_game_state();
+  
   // TODO cleanup
+  pile *initial_deck = state->piles[PILE_DECK];;
+  fill_deck(initial_deck);
+  print_deck(initial_deck);
+  
+  // shuffle
+  printf("\nshuffled:\n");
+  shuffle_pile(initial_deck);
+  print_deck(initial_deck);
+
 }
