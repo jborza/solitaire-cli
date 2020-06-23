@@ -18,10 +18,10 @@ void *mallocz(size_t size) {
 // definitions
 
 enum {
-  SUIT_HEART,
-  SUIT_SPADE,
-  SUIT_CLUB,
-  SUIT_DIAMOND,
+  SUIT_HEART, // 
+  SUIT_SPADE, //
+  SUIT_CLUB, //
+  SUIT_DIAMOND, //
   SUIT_COUNT // ♥♠♣♦
 };
 
@@ -454,6 +454,15 @@ void test_pile_operations() {
   print_pile_ptrs(initial_deck);
 }
 
+pile* stock(game_state *state){
+  return state->piles[PILE_DECK];
+}
+
+void turn(game_state *state){
+  // moves 1 card from stock to waste
+  card* revealed_card = shift(stock(state));
+  push(state->piles[PILE_REVEALED], revealed_card);
+}
 
 void deal(game_state *state) {
   // assuming a shuffled deck
@@ -468,6 +477,22 @@ void deal(game_state *state) {
     push(column, card);
    }
   }
+  // reveal 1 card
+  turn(state);
+}
+
+void print_all(game_state *state){
+  printf("\nstock:\n");
+  print_deck(stock(state));
+  printf("\nrevealed:\n");
+  print_deck(state->piles[PILE_REVEALED]);
+
+  for (int i = 0; i < COLUMN_COUNT; i++) {
+    int column = i + 1;
+    printf("\ncolumn %d\n", column);
+    print_deck(state->piles[PILE_COLUMN1 + i]);
+  }
+
 }
 
 int main() {
@@ -489,14 +514,5 @@ int main() {
   // deal
   deal(state);
 
-  printf("\npile:\n");
-  print_deck(initial_deck);
-  printf("\nrevealed:\n");
-  print_deck(state->piles[PILE_REVEALED]);
-
-  for (int i = 0; i < COLUMN_COUNT; i++) {
-    int column = i + 1;
-    printf("\ncolumn %d\n", column);
-    print_deck(state->piles[PILE_COLUMN1 + i]);
-  }
+  print_all(state);
 }
