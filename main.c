@@ -284,15 +284,17 @@ pile *make_pile() {
 
 void fill_deck(pile *pile) {
   for (int rank = 0; rank < RANK_COUNT; rank++) {
-          for (int suit = 0; suit < SUIT_COUNT; suit++) {
-                  push(pile, make_card_ptr(suit, rank));
-          }
+    for (int suit = 0; suit < SUIT_COUNT; suit++) {
+      push(pile, make_card_ptr(suit, rank));
+    }
   }
-  //for (int rank = 0; rank < RANK_8; rank++) {
+  // for (int rank = 0; rank < RANK_8; rank++) {
   //  push(pile, make_card_ptr(SUIT_HEART, rank));
   //}
 }
 #endif
+
+#define COLUMN_COUNT 7
 
 enum {
   PILE_DECK,
@@ -394,7 +396,7 @@ void shuffle_pile(pile *pile) {
   int shuffle_times = pile->num_cards * 10;
   for (int i = 0; i < shuffle_times; i++) {
     // unshift a card and insert to random place
-    int idx = rand() % pile->num_cards-1;
+    int idx = rand() % pile->num_cards - 1;
     card_ptr card = shift(pile);
     insert(pile, card, idx);
   }
@@ -406,12 +408,11 @@ void shuffle_pile(pile *pile) {
   print_card_ptr(x);                                                           \
   printf("\n");
 
-void test_pile_operations(){
+void test_pile_operations() {
   pile *initial_deck = make_pile();
   fill_deck(initial_deck);
   print_deck(initial_deck);
   print_pile_ptrs(initial_deck);
-
 
   printf("\npop\n");
   card_ptr popped_card = pop(initial_deck);
@@ -451,23 +452,51 @@ void test_pile_operations(){
   push(initial_deck, popped_card_2);
   print_deck(initial_deck);
   print_pile_ptrs(initial_deck);
+}
 
+
+void deal(game_state *state) {
+  // assuming a shuffled deck
+  pile *deck = state->piles[PILE_DECK];
+  // deal columns
+  for(int i = 0; i < COLUMN_COUNT; i++){
+    int column_idx = i + 1;
+    pile *column = state->piles[PILE_COLUMN1 + i];
+    // deal N cards in Nth column
+   for(int card_num = 0; card_num < column_idx; card_num++) {
+    card* card = shift(deck);
+    push(column, card);
+   }
+  }
 }
 
 int main() {
   srand(time(NULL));
 
-  //prepare the game statei
+  // prepare the game statei
   game_state *state = make_game_state();
-  
+
   // TODO cleanup
-  pile *initial_deck = state->piles[PILE_DECK];;
+  pile *initial_deck = state->piles[PILE_DECK];
   fill_deck(initial_deck);
   print_deck(initial_deck);
-  
+
   // shuffle
   printf("\nshuffled:\n");
-  shuffle_pile(initial_deck);
+  //shuffle_pile(initial_deck);
   print_deck(initial_deck);
 
+  // deal
+  deal(state);
+
+  printf("\npile:\n");
+  print_deck(initial_deck);
+  printf("\nrevealed:\n");
+  print_deck(state->piles[PILE_REVEALED]);
+
+  for (int i = 0; i < COLUMN_COUNT; i++) {
+    int column = i + 1;
+    printf("\ncolumn %d\n", column);
+    print_deck(state->piles[PILE_COLUMN1 + i]);
+  }
 }
