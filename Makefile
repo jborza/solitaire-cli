@@ -1,3 +1,3 @@
 CC=cc
 sol:
-	$(CC) -o solitaire -Wall *.c 
+	$(CC) -o solitaire -Wall *.c -lncurses

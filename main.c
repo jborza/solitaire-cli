@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include <ncurses.h>
+#include <locale.h>
 // utility functions
 
 void *mallocz(size_t size) {
@@ -16,6 +18,15 @@ void *mallocz(size_t size) {
 }
 
 // definitions
+
+//2660  BLACK SPADE SUIT
+//2661  WHITE HEART SUIT
+//2662  WHITE DIAMOND SUIT
+//2663  BLACK CLUB SUIT
+//2664  WHITE SPADE SUIT
+//2665  BLACK HEART SUIT
+//2666  BLACK DIAMOND SUIT
+//2667  WHITE CLUB SUIT
 
 enum {
   SUIT_HEART, // 
@@ -268,6 +279,13 @@ card *shift(pile *pile) {
   return card;
 }
 
+card *peek(pile *pile){
+  if(pile->head == NULL){
+    return NULL;
+  }
+  return pile->head->value;
+}
+
 card *peek_card_at(pile *pile, int index) {
   card_node *head = pile->head;
   for (int i = 0; i < index; i++)
@@ -495,8 +513,66 @@ void print_all(game_state *state){
 
 }
 
+int rows, cols;
+void init_curses(){
+  initscr();
+  getmaxyx(stdscr, rows, cols);
+}
+
+void printw_card(card *c) {
+  printw("%s%s", rank_to_charptr(c->rank), suit_to_charptr(c->suit));
+}
+
+void end_curses(){
+  endwin();
+}
+
+char *first_row_headers[] = { "Stock", "Waste", "", "Foundation 1", "Foundation 2", "Foundation 3", "Foundation 4"};
+
+void print_all_curses(game_state *state){
+  //2 rows, 7 columns
+  //top row has a fixed height of 1 card
+  //bottom row can have up to 13 cards
+  move(0,0);
+  //first row header
+  //let's assume 100 characters terminal
+  int column_size = 14;
+  for(int i = 0; i < 7; i++){
+    move(0, column_size * i);
+    printw("%s",first_row_headers[i]);
+  }
+  //first row content
+  move(1, 0);
+  printw_card(peek(stock(state)));
+  move(1, column_size);
+  printw_card(peek(state->piles[PILE_REVEALED]));
+  //printw("\u2665");
+
+//  printw("stock:");
+//  move(0, column_size);
+//  printw("revealed:");
+//  move(0, column_size*2);
+//  printw("\nstock:\n");
+//  print_deck(stock(state));
+//  printw("\nrevealed:\n");
+//  print_deck(state->piles[PILE_REVEALED]);
+
+  for (int i = 0; i < COLUMN_COUNT; i++) {
+    int column = i + 1;
+    printw("\ncolumn %d\n", column);
+    print_deck(state->piles[PILE_COLUMN1 + i]);
+  }
+  //status bar for the commands
+  move(rows-2, 0); 
+  printw("rows: %d, cols: %d", rows, cols); 
+  move(rows-1, 0);
+  printw("solitaire-cli > ");
+}
+
 int main() {
   srand(time(NULL));
+  setlocale(LC_ALL, "");
+  init_curses();
 
   // prepare the game statei
   game_state *state = make_game_state();
@@ -504,15 +580,22 @@ int main() {
   // TODO cleanup
   pile *initial_deck = state->piles[PILE_DECK];
   fill_deck(initial_deck);
-  print_deck(initial_deck);
+  //print_deck(initial_deck);
 
   // shuffle
-  printf("\nshuffled:\n");
+  //printf("\nshuffled:\n");
   //shuffle_pile(initial_deck);
-  print_deck(initial_deck);
+  //print_deck(initial_deck);
 
   // deal
   deal(state);
 
-  print_all(state);
+  print_all_curses(state);
+  
+  // 1 more turn
+  //turn(state);
+  //print_all(state);
+
+  getch();
+  end_curses();
 }
