@@ -4,8 +4,8 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include <ncurses.h>
 #include <locale.h>
+#include <ncurses.h>
 // utility functions
 
 void *mallocz(size_t size) {
@@ -19,21 +19,21 @@ void *mallocz(size_t size) {
 
 // definitions
 
-//2660  BLACK SPADE SUIT
-//2661  WHITE HEART SUIT
-//2662  WHITE DIAMOND SUIT
-//2663  BLACK CLUB SUIT
-//2664  WHITE SPADE SUIT
-//2665  BLACK HEART SUIT
-//2666  BLACK DIAMOND SUIT
-//2667  WHITE CLUB SUIT
+// 2660  BLACK SPADE SUIT
+// 2661  WHITE HEART SUIT
+// 2662  WHITE DIAMOND SUIT
+// 2663  BLACK CLUB SUIT
+// 2664  WHITE SPADE SUIT
+// 2665  BLACK HEART SUIT
+// 2666  BLACK DIAMOND SUIT
+// 2667  WHITE CLUB SUIT
 
 enum {
-  SUIT_HEART, // 
-  SUIT_SPADE, //
-  SUIT_CLUB, //
+  SUIT_HEART,   //
+  SUIT_SPADE,   //
+  SUIT_CLUB,    //
   SUIT_DIAMOND, //
-  SUIT_COUNT // ♥♠♣♦
+  SUIT_COUNT    // ♥♠♣♦
 };
 
 enum {
@@ -279,8 +279,8 @@ card *shift(pile *pile) {
   return card;
 }
 
-card *peek(pile *pile){
-  if(pile->head == NULL){
+card *peek(pile *pile) {
+  if (pile->head == NULL) {
     return NULL;
   }
   return pile->head->value;
@@ -472,13 +472,11 @@ void test_pile_operations() {
   print_pile_ptrs(initial_deck);
 }
 
-pile* stock(game_state *state){
-  return state->piles[PILE_DECK];
-}
+pile *stock(game_state *state) { return state->piles[PILE_DECK]; }
 
-void turn(game_state *state){
+void turn(game_state *state) {
   // moves 1 card from stock to waste
-  card* revealed_card = shift(stock(state));
+  card *revealed_card = shift(stock(state));
   push(state->piles[PILE_REVEALED], revealed_card);
 }
 
@@ -486,20 +484,20 @@ void deal(game_state *state) {
   // assuming a shuffled deck
   pile *deck = state->piles[PILE_DECK];
   // deal columns
-  for(int i = 0; i < COLUMN_COUNT; i++){
+  for (int i = 0; i < COLUMN_COUNT; i++) {
     int column_idx = i + 1;
     pile *column = state->piles[PILE_COLUMN1 + i];
     // deal N cards in Nth column
-   for(int card_num = 0; card_num < column_idx; card_num++) {
-    card* card = shift(deck);
-    push(column, card);
-   }
+    for (int card_num = 0; card_num < column_idx; card_num++) {
+      card *card = shift(deck);
+      push(column, card);
+    }
   }
   // reveal 1 card
   turn(state);
 }
 
-void print_all(game_state *state){
+void print_all(game_state *state) {
   printf("\nstock:\n");
   print_deck(stock(state));
   printf("\nrevealed:\n");
@@ -510,11 +508,10 @@ void print_all(game_state *state){
     printf("\ncolumn %d\n", column);
     print_deck(state->piles[PILE_COLUMN1 + i]);
   }
-
 }
 
 int rows, cols;
-void init_curses(){
+void init_curses() {
   initscr();
   getmaxyx(stdscr, rows, cols);
 }
@@ -523,49 +520,60 @@ void printw_card(card *c) {
   printw("%s%s", rank_to_charptr(c->rank), suit_to_charptr(c->suit));
 }
 
-void end_curses(){
-  endwin();
+void end_curses() { endwin(); }
+
+// zero-based column idx
+pile *column(game_state *state, int column_idx) {
+  return state->piles[PILE_COLUMN1 + column_idx];
 }
 
-char *first_row_headers[] = { "Stock", "Waste", "", "Foundation 1", "Foundation 2", "Foundation 3", "Foundation 4"};
+char *first_row_headers[] = {"Stock",        "Waste",        "",
+                             "Foundation 1", "Foundation 2", "Foundation 3",
+                             "Foundation 4"};
+char *second_row_headers[] = {"Column 1", "Column 2", "Column 3", "Column 4",
+                              "Column 5", "Column 6", "Column 7"};
 
-void print_all_curses(game_state *state){
-  //2 rows, 7 columns
-  //top row has a fixed height of 1 card
-  //bottom row can have up to 13 cards
-  move(0,0);
-  //first row header
-  //let's assume 100 characters terminal
+void print_all_curses(game_state *state) {
+  // 2 rows, 7 columns
+  // top row has a fixed height of 1 card
+  // bottom row can have up to 13 cards
+  move(0, 0);
+  // first row header
+  // let's assume 100 characters terminal
   int column_size = 14;
-  for(int i = 0; i < 7; i++){
+  for (int i = 0; i < 7; i++) {
     move(0, column_size * i);
-    printw("%s",first_row_headers[i]);
+    printw("%s", first_row_headers[i]);
   }
-  //first row content
+  // first row content
   move(1, 0);
   printw_card(peek(stock(state)));
+  move(2, 0);
+  printw("(%d cards)", stock(state)->num_cards);
   move(1, column_size);
   printw_card(peek(state->piles[PILE_REVEALED]));
   printw("\u2665\u2660\u2663\u2666");
+  // TODO foundations
 
-//  printw("stock:");
-//  move(0, column_size);
-//  printw("revealed:");
-//  move(0, column_size*2);
-//  printw("\nstock:\n");
-//  print_deck(stock(state));
-//  printw("\nrevealed:\n");
-//  print_deck(state->piles[PILE_REVEALED]);
+  // second row header
+  for (int i = 0; i < COLUMN_COUNT; i++) {
+    move(4, column_size * i);
+    printw("%s", second_row_headers[i]);
+    move(5, column_size * i);
+    printw("(%d cards)", column(state, i)->num_cards);
+  }
+
+  // second row peek
 
   for (int i = 0; i < COLUMN_COUNT; i++) {
-    int column = i + 1;
-    printw("\ncolumn %d\n", column);
-    print_deck(state->piles[PILE_COLUMN1 + i]);
+    move(6, column_size * i);
+    printw_card(peek(column(state, i)));
   }
-  //status bar for the commands
-  move(rows-2, 0); 
-  printw("rows: %d, cols: %d", rows, cols); 
-  move(rows-1, 0);
+
+  // status bar for the commands
+  move(rows - 2, 0);
+  printw("rows: %d, cols: %d", rows, cols);
+  move(rows - 1, 0);
   printw("solitaire-cli > ");
 }
 
@@ -580,21 +588,21 @@ int main() {
   // TODO cleanup
   pile *initial_deck = state->piles[PILE_DECK];
   fill_deck(initial_deck);
-  //print_deck(initial_deck);
+  // print_deck(initial_deck);
 
   // shuffle
-  //printf("\nshuffled:\n");
-  //shuffle_pile(initial_deck);
-  //print_deck(initial_deck);
+  // printf("\nshuffled:\n");
+  // shuffle_pile(initial_deck);
+  // print_deck(initial_deck);
 
   // deal
   deal(state);
 
   print_all_curses(state);
-  
+
   // 1 more turn
-  //turn(state);
-  //print_all(state);
+  // turn(state);
+  // print_all(state);
 
   getch();
   end_curses();
