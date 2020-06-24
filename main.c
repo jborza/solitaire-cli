@@ -546,7 +546,7 @@ void print_all_curses(game_state *state){
   printw_card(peek(stock(state)));
   move(1, column_size);
   printw_card(peek(state->piles[PILE_REVEALED]));
-  //printw("\u2665");
+  printw("\u2665\u2660\u2663\u2666");
 
 //  printw("stock:");
 //  move(0, column_size);
