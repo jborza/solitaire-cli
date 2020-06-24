@@ -537,16 +537,14 @@ void init_curses() {
 }
 
 void printw_card(card *c) {
-  if(c == NULL){
+  if (c == NULL) {
     printw("<NULL>");
     return;
   }
   printw("%s%s", rank_to_charptr(c->rank), suit_to_charptr(c->suit));
 }
 
-void printw_pile_size(pile *pile){
-  printw("(%d cards)", pile->num_cards);
-}
+void printw_pile_size(pile *pile) { printw("(%d cards)", pile->num_cards); }
 
 void end_curses() { endwin(); }
 
@@ -555,7 +553,7 @@ pile *column(game_state *state, int column_idx) {
   return state->piles[PILE_COLUMN1 + column_idx];
 }
 
-pile *foundation(game_state *state, int foundation_idx){
+pile *foundation(game_state *state, int foundation_idx) {
   return state->piles[PILE_FOUNDATION1 + foundation_idx];
 }
 
@@ -564,7 +562,6 @@ char *first_row_headers[] = {"Stock",        "Waste",        "",
                              "Foundation 4"};
 char *second_row_headers[] = {"Column 1", "Column 2", "Column 3", "Column 4",
                               "Column 5", "Column 6", "Column 7"};
-
 
 void print_all_curses(game_state *state) {
   // 2 rows, 7 columns
@@ -589,13 +586,12 @@ void print_all_curses(game_state *state) {
   printw_pile_size(state->piles[PILE_REVEALED]);
 
   // foundations
-  for(int f = 0; f < FOUNDATION_COUNT; f++){
+  for (int f = 0; f < FOUNDATION_COUNT; f++) {
     int foundation_1_column = 3;
     move(1, (foundation_1_column + f) * column_size);
     printw_card(peek(foundation(state, f)));
     move(2, (foundation_1_column + f) * column_size);
-    printw_pile_size(foundation(state,f));
-    
+    printw_pile_size(foundation(state, f));
   }
 
   // second row header
@@ -607,10 +603,18 @@ void print_all_curses(game_state *state) {
   }
 
   // second row peek
-
   for (int i = 0; i < COLUMN_COUNT; i++) {
     move(6, column_size * i);
     printw_card(peek(column(state, i)));
+  }
+
+  for (int i = 0; i < COLUMN_COUNT; i++) {
+    pile *col = column(state, i);
+    int base_row = 8;
+    for (int c = 0; c < col->num_cards; c++) {
+      move(base_row + c, column_size * i);
+      printw_card(peek_card_at(col, c));
+    }
   }
 
   // status bar for the commands
@@ -635,7 +639,7 @@ int main() {
 
   // shuffle
   // printf("\nshuffled:\n");
-   shuffle_pile(initial_deck);
+  shuffle_pile(initial_deck);
   // print_deck(initial_deck);
 
   // deal
