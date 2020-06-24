@@ -544,6 +544,10 @@ void printw_card(card *c) {
   printw("%s%s", rank_to_charptr(c->rank), suit_to_charptr(c->suit));
 }
 
+void printw_pile_size(pile *pile){
+  printw("(%d cards)", pile->num_cards);
+}
+
 void end_curses() { endwin(); }
 
 // zero-based column idx
@@ -561,6 +565,7 @@ char *first_row_headers[] = {"Stock",        "Waste",        "",
 char *second_row_headers[] = {"Column 1", "Column 2", "Column 3", "Column 4",
                               "Column 5", "Column 6", "Column 7"};
 
+
 void print_all_curses(game_state *state) {
   // 2 rows, 7 columns
   // top row has a fixed height of 1 card
@@ -577,14 +582,20 @@ void print_all_curses(game_state *state) {
   move(1, 0);
   printw_card(peek(stock(state)));
   move(2, 0);
-  printw("(%d cards)", stock(state)->num_cards);
+  printw_pile_size(stock(state));
   move(1, column_size);
   printw_card(peek(state->piles[PILE_REVEALED]));
-  // TODO foundations
+  move(2, column_size);
+  printw_pile_size(state->piles[PILE_REVEALED]);
+
+  // foundations
   for(int f = 0; f < FOUNDATION_COUNT; f++){
     int foundation_1_column = 3;
     move(1, (foundation_1_column + f) * column_size);
     printw_card(peek(foundation(state, f)));
+    move(2, (foundation_1_column + f) * column_size);
+    printw_pile_size(foundation(state,f));
+    
   }
 
   // second row header
@@ -592,7 +603,7 @@ void print_all_curses(game_state *state) {
     move(4, column_size * i);
     printw("%s", second_row_headers[i]);
     move(5, column_size * i);
-    printw("(%d cards)", column(state, i)->num_cards);
+    printw_pile_size(column(state, i));
   }
 
   // second row peek
@@ -624,7 +635,7 @@ int main() {
 
   // shuffle
   // printf("\nshuffled:\n");
-  // shuffle_pile(initial_deck);
+   shuffle_pile(initial_deck);
   // print_deck(initial_deck);
 
   // deal
