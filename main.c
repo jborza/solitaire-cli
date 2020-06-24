@@ -60,6 +60,24 @@ typedef struct card {
 
 typedef card *card_ptr;
 
+#define UNICODE
+#ifdef UNICODE
+const char *suit_to_charptr(int suit) {
+  switch (suit) {
+  case SUIT_HEART:
+    return "\u2665";
+  case SUIT_SPADE:
+    return "\u2660";
+  case SUIT_CLUB:
+    return "\u2663";
+  case SUIT_DIAMOND:
+    return "\u2666";
+  default:
+    return "?";
+  }
+}
+
+#else
 const char *suit_to_charptr(int suit) {
   switch (suit) {
   case SUIT_HEART:
@@ -74,6 +92,7 @@ const char *suit_to_charptr(int suit) {
     return "?";
   }
 }
+#endif
 
 const char *rank_to_charptr(int rank) {
   switch (rank) {
@@ -313,6 +332,7 @@ void fill_deck(pile *pile) {
 #endif
 
 #define COLUMN_COUNT 7
+#define FOUNDATION_COUNT 4
 
 enum {
   PILE_DECK,
@@ -517,6 +537,10 @@ void init_curses() {
 }
 
 void printw_card(card *c) {
+  if(c == NULL){
+    printw("<NULL>");
+    return;
+  }
   printw("%s%s", rank_to_charptr(c->rank), suit_to_charptr(c->suit));
 }
 
@@ -525,6 +549,10 @@ void end_curses() { endwin(); }
 // zero-based column idx
 pile *column(game_state *state, int column_idx) {
   return state->piles[PILE_COLUMN1 + column_idx];
+}
+
+pile *foundation(game_state *state, int foundation_idx){
+  return state->piles[PILE_FOUNDATION1 + foundation_idx];
 }
 
 char *first_row_headers[] = {"Stock",        "Waste",        "",
@@ -552,8 +580,12 @@ void print_all_curses(game_state *state) {
   printw("(%d cards)", stock(state)->num_cards);
   move(1, column_size);
   printw_card(peek(state->piles[PILE_REVEALED]));
-  printw("\u2665\u2660\u2663\u2666");
   // TODO foundations
+  for(int f = 0; f < FOUNDATION_COUNT; f++){
+    int foundation_1_column = 3;
+    move(1, (foundation_1_column + f) * column_size);
+    printw_card(peek(foundation(state, f)));
+  }
 
   // second row header
   for (int i = 0; i < COLUMN_COUNT; i++) {
