@@ -541,9 +541,18 @@ void print_all(game_state *state) {
 }
 
 int rows, cols;
+
+#define BLACK_PAIR 1
+#define RED_PAIR 2
+#define DEFAULT_COLOR -1
+
 void init_curses() {
   initscr();
+  use_default_colors();
+  start_color();
   getmaxyx(stdscr, rows, cols);
+  init_pair(BLACK_PAIR, DEFAULT_COLOR, DEFAULT_COLOR);
+  init_pair(RED_PAIR, COLOR_RED, DEFAULT_COLOR);
 }
 
 void printw_card(card *c) {
@@ -551,11 +560,14 @@ void printw_card(card *c) {
     printw("<NULL>");
     return;
   }
+  int color_pair = is_black(*c) ? BLACK_PAIR : RED_PAIR;
+  attron(COLOR_PAIR(color_pair));
   if (c->revealed) {
     printw("%s%s", rank_to_charptr(c->rank), suit_to_charptr(c->suit));
   } else {
     printw("(%s%s)", rank_to_charptr(c->rank), suit_to_charptr(c->suit));
   }
+  attroff(COLOR_PAIR(color_pair));
 }
 
 void printw_pile_size(pile *pile) { printw("(%d cards)", pile->num_cards); }
@@ -615,12 +627,6 @@ void print_all_curses(game_state *state) {
     move(5, column_size * i);
     printw_pile_size(column(state, i));
   }
-
-  // second row peek
-  // for (int i = 0; i < COLUMN_COUNT; i++) {
-  //  move(6, column_size * i);
-  //  printw_card(peek(column(state, i)));
-  //}
 
   for (int i = 0; i < COLUMN_COUNT; i++) {
     pile *col = column(state, i);
