@@ -56,6 +56,7 @@ enum {
 typedef struct card {
   int suit;
   int rank;
+  int revealed;
 } card;
 
 typedef card *card_ptr;
@@ -494,9 +495,14 @@ void test_pile_operations() {
 
 pile *stock(game_state *state) { return state->piles[PILE_DECK]; }
 
+void reveal(card *card) { card->revealed = 1; }
+
+void hide(card *card) { card->revealed = 0; }
+
 void turn(game_state *state) {
   // moves 1 card from stock to waste
   card *revealed_card = shift(stock(state));
+  reveal(revealed_card);
   push(state->piles[PILE_REVEALED], revealed_card);
 }
 
@@ -511,6 +517,10 @@ void deal(game_state *state) {
     for (int card_num = 0; card_num < column_idx; card_num++) {
       card *card = shift(deck);
       push(column, card);
+      // reveal last card from the column
+      if (card_num == column_idx - 1) {
+        reveal(card);
+      }
     }
   }
   // reveal 1 card
@@ -541,7 +551,11 @@ void printw_card(card *c) {
     printw("<NULL>");
     return;
   }
-  printw("%s%s", rank_to_charptr(c->rank), suit_to_charptr(c->suit));
+  if (c->revealed) {
+    printw("%s%s", rank_to_charptr(c->rank), suit_to_charptr(c->suit));
+  } else {
+    printw("(%s%s)", rank_to_charptr(c->rank), suit_to_charptr(c->suit));
+  }
 }
 
 void printw_pile_size(pile *pile) { printw("(%d cards)", pile->num_cards); }
@@ -603,14 +617,14 @@ void print_all_curses(game_state *state) {
   }
 
   // second row peek
-  for (int i = 0; i < COLUMN_COUNT; i++) {
-    move(6, column_size * i);
-    printw_card(peek(column(state, i)));
-  }
+  // for (int i = 0; i < COLUMN_COUNT; i++) {
+  //  move(6, column_size * i);
+  //  printw_card(peek(column(state, i)));
+  //}
 
   for (int i = 0; i < COLUMN_COUNT; i++) {
     pile *col = column(state, i);
-    int base_row = 8;
+    int base_row = 6;
     for (int c = 0; c < col->num_cards; c++) {
       move(base_row + c, column_size * i);
       printw_card(peek_card_at(col, c));
@@ -625,24 +639,16 @@ void print_all_curses(game_state *state) {
 }
 
 int main() {
-  srand(time(NULL));
+  // srand(time(NULL));
   setlocale(LC_ALL, "");
   init_curses();
 
   // prepare the game statei
   game_state *state = make_game_state();
 
-  // TODO cleanup
-  pile *initial_deck = state->piles[PILE_DECK];
-  fill_deck(initial_deck);
-  // print_deck(initial_deck);
-
-  // shuffle
-  // printf("\nshuffled:\n");
-  shuffle_pile(initial_deck);
-  // print_deck(initial_deck);
-
-  // deal
+  pile *stock_pile = stock(state);
+  fill_deck(stock_pile);
+  shuffle_pile(stock_pile);
   deal(state);
 
   print_all_curses(state);
