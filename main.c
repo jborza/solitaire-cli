@@ -416,6 +416,12 @@ void print_pile_ptrs(pile *pile) {
     card *c = head->value;
     print_card(c);
     printf(" @ %p | ", c);
+    // second row peek
+    // for (int i = 0; i < COLUMN_COUNT; i++) {
+    //  move(6, column_size * i);
+    //  printw_card(peek(column(state, i)));
+    //}
+
     head = head->next;
   }
   printf("] (%d)\n", pile->num_cards);
@@ -589,7 +595,12 @@ char *first_row_headers[] = {"Stock",        "Waste",        "",
 char *second_row_headers[] = {"Column 1", "Column 2", "Column 3", "Column 4",
                               "Column 5", "Column 6", "Column 7"};
 
-void print_all_curses(game_state *state) {
+void print_prompt(){
+  move(rows - 1, 0);
+  printw("solitaire-cli > ");
+}
+
+void print_all_curses(game_state *state) { 
   // 2 rows, 7 columns
   // top row has a fixed height of 1 card
   // bottom row can have up to 13 cards
@@ -638,31 +649,97 @@ void print_all_curses(game_state *state) {
   }
 
   // status bar for the commands
-  move(rows - 2, 0);
-  printw("rows: %d, cols: %d", rows, cols);
-  move(rows - 1, 0);
-  printw("solitaire-cli > ");
+  print_prompt();
 }
+
+void prepare_game(game_state *state){
+  pile *stock_pile = stock(state);
+  fill_deck(stock_pile);
+  shuffle_pile(stock_pile);
+  deal(state);
+}
+
+typedef struct parsed_input {
+  char source;
+  char destination;
+  int source_index;
+  int destination_index;
+  int source_amount;
+  int success;
+} parsed_input;
+
+parsed_input parse_input(char *command){
+  parsed_input parsed;
+  parsed.success = 1;
+  parsed.source_amount = 1;
+  // parser patterns 
+  char * pattern_multi_move = "%dc%d c%d";
+  char *pattern_single_move = "c%d %c%d";
+  char *pattern_waste_move = "w %c%d";
+  char *pattern_stock = "s";
+  if(sscanf(command, pattern_multi_move, &parsed.source_amount, &parsed.source_index, &parsed.destination_index) == 3){
+    parsed.source = 'c';
+    parsed.destination = 'c';
+  }
+  else if(sscanf(command, pattern_single_move, &parsed.source_index, &parsed.destination, &parsed.destination_index) == 3){
+    parsed.source = 'c';
+  }
+  else if(sscanf(command, pattern_waste_move, &parsed.destination, &parsed.destination_index) == 2){
+    parsed.source = 'w';
+  }
+  else if(strcmp(command, pattern_stock) == 0){
+    parsed.source = 's';
+  }
+  else{
+    parsed.success = 0;
+  }
+  return parsed;
+}
+
+int attempt_move(game_state *state, char *command){
+  //format: c6 f3 
+  parsed_input parsed = parse_input(command);
+  if(parsed.success != 1){
+    return 1;
+  }
+  //numbered 
+  
+  //figure out destination
+  
+  //check if the move is valid
+  
+  //execute the move optionally
+
+  //set the return code
+  return 0;
+} 
 
 int main() {
   // srand(time(NULL));
   setlocale(LC_ALL, "");
   init_curses();
 
-  // prepare the game statei
+  // prepare the game state
   game_state *state = make_game_state();
+  prepare_game(state);
 
-  pile *stock_pile = stock(state);
-  fill_deck(stock_pile);
-  shuffle_pile(stock_pile);
-  deal(state);
 
-  print_all_curses(state);
 
   // 1 more turn
   // turn(state);
   // print_all(state);
 
+  char buffer[80];
+  print_all_curses(state);
+  //game loop
+  while (1) {
+    getstr(buffer);
+    mvprintw(rows - 3, 0, "You entered: %s", buffer);
+    //pick up the source, destination and attempt the move
+    attempt_move(state, buffer);  
+    //show new status in the status bar
+    print_all_curses(state);
+  }
   getch();
   end_curses();
 }
