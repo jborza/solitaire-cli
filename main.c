@@ -299,6 +299,13 @@ card *shift(pile *pile) {
   return card;
 }
 
+card *peek_card_at(pile *pile, int index) {
+  card_node *head = pile->head;
+  for (int i = 0; i < index; i++)
+    head = head->next;
+  return head->value;
+}
+
 card *peek(pile *pile) {
   if (pile->head == NULL) {
     return NULL;
@@ -306,11 +313,11 @@ card *peek(pile *pile) {
   return pile->head->value;
 }
 
-card *peek_card_at(pile *pile, int index) {
-  card_node *head = pile->head;
-  for (int i = 0; i < index; i++)
-    head = head->next;
-  return head->value;
+card *peek_last(pile *pile){
+  if(pile->head == NULL){
+    return NULL;
+  }
+  return peek_card_at(pile, pile->num_cards - 1);
 }
 
 pile *make_pile() {
@@ -501,6 +508,8 @@ void test_pile_operations() {
 
 pile *stock(game_state *state) { return state->piles[PILE_DECK]; }
 
+pile *waste(game_state *state) { return state->piles[PILE_REVEALED]; }
+
 void reveal(card *card) { card->revealed = 1; }
 
 void hide(card *card) { card->revealed = 0; }
@@ -600,6 +609,14 @@ void print_prompt(){
   printw("solitaire-cli > ");
 }
 
+void debug_print_pile(pile *pile, int row, int column){
+  for(int i = 0; i < pile->num_cards; i++){
+    move(row+i, column);
+    printw_card(peek_card_at(pile, i));
+  }
+
+}
+
 void print_all_curses(game_state *state) { 
   // 2 rows, 7 columns
   // top row has a fixed height of 1 card
@@ -612,15 +629,17 @@ void print_all_curses(game_state *state) {
     move(0, column_size * i);
     printw("%s", first_row_headers[i]);
   }
+  pile *stock_pile = stock(state);
+  pile *waste_pile = waste(state);
   // first row content
   move(1, 0);
-  printw_card(peek(stock(state)));
+  printw_card(peek(stock_pile));
   move(2, 0);
-  printw_pile_size(stock(state));
+  printw_pile_size(stock_pile);
   move(1, column_size);
-  printw_card(peek(state->piles[PILE_REVEALED]));
+  printw_card(peek_last(waste_pile));
   move(2, column_size);
-  printw_pile_size(state->piles[PILE_REVEALED]);
+  printw_pile_size(waste_pile);
 
   // foundations
   for (int f = 0; f < FOUNDATION_COUNT; f++) {
@@ -647,6 +666,11 @@ void print_all_curses(game_state *state) {
       printw_card(peek_card_at(col, c));
     }
   }
+  //debug: stock, waste
+  mvprintw(17,0, "stock:");
+  debug_print_pile(stock_pile, 18, 0);
+  mvprintw(17, 20, "waste:");
+  debug_print_pile(waste_pile, 18, 20);
 
   // status bar for the commands
   print_prompt();
@@ -702,9 +726,12 @@ int attempt_move(game_state *state, char *command){
   if(parsed.success != 1){
     return 1;
   }
-  //numbered 
   
   //figure out destination
+  if(parsed.source == 's'){
+    turn(state); 
+    //TODO remember that the stock can get empty, we need to wrap around
+  }
   
   //check if the move is valid
   
@@ -723,17 +750,13 @@ int main() {
   game_state *state = make_game_state();
   prepare_game(state);
 
-
-
-  // 1 more turn
-  // turn(state);
-  // print_all(state);
-
   char buffer[80];
   print_all_curses(state);
   //game loop
   while (1) {
     getstr(buffer);
+    
+    erase();
     mvprintw(rows - 3, 0, "You entered: %s", buffer);
     //pick up the source, destination and attempt the move
     attempt_move(state, buffer);  
