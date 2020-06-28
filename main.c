@@ -639,7 +639,7 @@ void print_all_curses(game_state *state) {
   for (int f = 0; f < FOUNDATION_COUNT; f++) {
     int foundation_1_column = 3;
     move(1, (foundation_1_column + f) * column_size);
-    printw_card(peek(foundation(state, f + 1)));
+    printw_card(peek_last(foundation(state, f + 1)));
     move(2, (foundation_1_column + f) * column_size);
     printw_pile_size(foundation(state, f + 1));
   }
@@ -663,10 +663,12 @@ void print_all_curses(game_state *state) {
   // debug: stock, waste
   mvprintw(17, 0, "stock:");
   debug_print_pile(stock_pile, 18, 0);
-  mvprintw(17, 20, "waste:");
-  debug_print_pile(waste_pile, 18, 20);
-  mvprintw(17, 35, "foundation 1:");
-  debug_print_pile(foundation(state, 1), 18, 20);
+  mvprintw(17, 16, "waste:");
+  debug_print_pile(waste_pile, 18, 16);
+  mvprintw(17, 32, "foundation 1:");
+  debug_print_pile(foundation(state, 1), 18, 32);
+  mvprintw(17, 48, "foundation 2:");
+  debug_print_pile(foundation(state, 2), 18, 48);
 
   // status bar for the commands
   print_prompt();
@@ -746,7 +748,7 @@ int attempt_move(game_state *state, char *command) {
 
   // figure out destination
   if (parsed.source == 's') {
-    for(int i = 0; i < parsed.source_amount; i++){
+    for (int i = 0; i < parsed.source_amount; i++) {
       turn(state);
     }
     // TODO remember that the stock can get empty, we need to wrap around
@@ -768,7 +770,7 @@ int attempt_move(game_state *state, char *command) {
     if (destination_pile->num_cards == 0 && source_card->rank == RANK_A) {
       // push(destination_pile, source_card);
       pop(source_pile);
-      unshift(destination_pile, source_card);
+      push(destination_pile, source_card);
       return MOVE_OK;
     }
     if (destination_pile->num_cards != 0) {
@@ -778,6 +780,23 @@ int attempt_move(game_state *state, char *command) {
         pop(source_pile);
         push(destination_pile, source_card);
         return MOVE_OK;
+      } else {
+        return MOVE_INVALID_MOVE;
+      }
+    }
+  }
+  if (parsed.destination == 'c') {
+    // king can go in an empty column
+    if (destination_pile->num_cards == 0 && source_card->rank == RANK_K) {
+      pop(source_pile);
+      push(destination_pile, source_card);
+      return MOVE_OK;
+    }
+    if (destination_pile->num_cards != 0) {
+      card *bottom_column_card = peek_last(destination_pile);
+      if (can_be_placed_bottom(*bottom_column_card, *source_card)) {
+        pop(source_pile);
+        push(destination_pile, source_card);
       } else {
         return MOVE_INVALID_MOVE;
       }
