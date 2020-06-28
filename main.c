@@ -258,7 +258,7 @@ card_node *make_node(card *card) {
 // append to the end of the list
 void push(pile *pile, card *card) {
   card_node *tail = find_tail(pile);
-  if (tail == 0) {
+  if (tail == NULL) {
     pile->head = make_node(card);
   } else {
     tail->next = make_node(card);
@@ -313,8 +313,8 @@ card *peek(pile *pile) {
   return pile->head->value;
 }
 
-card *peek_last(pile *pile){
-  if(pile->head == NULL){
+card *peek_last(pile *pile) {
+  if (pile->head == NULL) {
     return NULL;
   }
   return peek_card_at(pile, pile->num_cards - 1);
@@ -323,7 +323,6 @@ card *peek_last(pile *pile){
 pile *make_pile() {
   pile *pile_ptr = mallocz(sizeof(pile *));
   pile_ptr->num_cards = 0;
-  // pile->cards = malloc(sizeof(card*) * CARD_COUNT);
   return pile_ptr;
 }
 
@@ -333,9 +332,6 @@ void fill_deck(pile *pile) {
       push(pile, make_card_ptr(suit, rank));
     }
   }
-  // for (int rank = 0; rank < RANK_8; rank++) {
-  //  push(pile, make_card_ptr(SUIT_HEART, rank));
-  //}
 }
 #endif
 
@@ -510,9 +506,13 @@ pile *stock(game_state *state) { return state->piles[PILE_DECK]; }
 
 pile *waste(game_state *state) { return state->piles[PILE_REVEALED]; }
 
-pile *column(game_state *state, int index_one_based) { return state->piles[PILE_COLUMN1 + index_one_based - 1]; }
+pile *column(game_state *state, int index_one_based) {
+  return state->piles[PILE_COLUMN1 + index_one_based - 1];
+}
 
-pile *foundation(game_state *state, int index_one_based) { return state->piles[PILE_FOUNDATION1 + index_one_based - 1]; }
+pile *foundation(game_state *state, int index_one_based) {
+  return state->piles[PILE_FOUNDATION1 + index_one_based - 1];
+}
 
 void reveal(card *card) { card->revealed = 1; }
 
@@ -599,20 +599,19 @@ char *first_row_headers[] = {"Stock",        "Waste",        "",
 char *second_row_headers[] = {"Column 1", "Column 2", "Column 3", "Column 4",
                               "Column 5", "Column 6", "Column 7"};
 
-void print_prompt(){
+void print_prompt() {
   move(rows - 1, 0);
   printw("solitaire-cli > ");
 }
 
-void debug_print_pile(pile *pile, int row, int column){
-  for(int i = 0; i < pile->num_cards; i++){
-    move(row+i, column);
+void debug_print_pile(pile *pile, int row, int column) {
+  for (int i = 0; i < pile->num_cards; i++) {
+    move(row + i, column);
     printw_card(peek_card_at(pile, i));
   }
-
 }
 
-void print_all_curses(game_state *state) { 
+void print_all_curses(game_state *state) {
   // 2 rows, 7 columns
   // top row has a fixed height of 1 card
   // bottom row can have up to 13 cards
@@ -661,8 +660,8 @@ void print_all_curses(game_state *state) {
       printw_card(peek_card_at(col, c));
     }
   }
-  //debug: stock, waste
-  mvprintw(17,0, "stock:");
+  // debug: stock, waste
+  mvprintw(17, 0, "stock:");
   debug_print_pile(stock_pile, 18, 0);
   mvprintw(17, 20, "waste:");
   debug_print_pile(waste_pile, 18, 20);
@@ -673,7 +672,7 @@ void print_all_curses(game_state *state) {
   print_prompt();
 }
 
-void prepare_game(game_state *state){
+void prepare_game(game_state *state) {
   pile *stock_pile = stock(state);
   fill_deck(stock_pile);
   shuffle_pile(stock_pile);
@@ -689,101 +688,107 @@ typedef struct parsed_input {
   int success;
 } parsed_input;
 
-parsed_input parse_input(char *command){
+parsed_input parse_input(char *command) {
   parsed_input parsed;
   parsed.success = 1;
   parsed.source_amount = 1;
-  // parser patterns 
+  // parser patterns
   char *pattern_multi_move = "%dc%d c%d";
   char *pattern_single_move = "c%d %c%d";
   char *pattern_waste_move = "w %c%d";
+  char *pattern_multi_stock = "%ds";
   char *pattern_stock = "s";
-  if(sscanf(command, pattern_multi_move, &parsed.source_amount, &parsed.source_index, &parsed.destination_index) == 3){
+  if (sscanf(command, pattern_multi_move, &parsed.source_amount,
+             &parsed.source_index, &parsed.destination_index) == 3) {
     parsed.source = 'c';
     parsed.destination = 'c';
-  }
-  else if(sscanf(command, pattern_single_move, &parsed.source_index, &parsed.destination, &parsed.destination_index) == 3){
+  } else if (sscanf(command, pattern_single_move, &parsed.source_index,
+                    &parsed.destination, &parsed.destination_index) == 3) {
     parsed.source = 'c';
-  }
-  else if(sscanf(command, pattern_waste_move, &parsed.destination, &parsed.destination_index) == 2){
+  } else if (sscanf(command, pattern_waste_move, &parsed.destination,
+                    &parsed.destination_index) == 2) {
     parsed.source = 'w';
-  }
-  else if(strcmp(command, pattern_stock) == 0){
+  } else if (sscanf(command, pattern_multi_stock, &parsed.source_amount) == 1) {
     parsed.source = 's';
-  }
-  else{
+  } else if (strcmp(command, pattern_stock) == 0) {
+    parsed.source = 's';
+  } else {
     parsed.success = 0;
   }
   return parsed;
 }
 
-pile *get_pile(game_state *state, char pile_prefix, int pile_index_one_based){
-  switch(pile_prefix){
-    case 's':
-      return stock(state);
-    case 'w':
-      return waste(state);
-    case 'f':
-      return foundation(state, pile_index_one_based);
-    case 'c':
-      return column(state, pile_index_one_based);
-    default:
-      return NULL;
+pile *get_pile(game_state *state, char pile_prefix, int pile_index_one_based) {
+  switch (pile_prefix) {
+  case 's':
+    return stock(state);
+  case 'w':
+    return waste(state);
+  case 'f':
+    return foundation(state, pile_index_one_based);
+  case 'c':
+    return column(state, pile_index_one_based);
+  default:
+    return NULL;
   }
 }
 
-enum { MOVE_OK, MOVE_INVALID_COMMAND, MOVE_SOURCE_EMPTY, MOVE_INVALID_MOVE } ;
-char *move_results[] = {"OK", "Invalid command", "Source pile empty", "Invalid move"};
+enum { MOVE_OK, MOVE_INVALID_COMMAND, MOVE_SOURCE_EMPTY, MOVE_INVALID_MOVE };
+char *move_results[] = {"OK", "Invalid command", "Source pile empty",
+                        "Invalid move"};
 
-int attempt_move(game_state *state, char *command){
-  //format: c6 f3 
+int attempt_move(game_state *state, char *command) {
+  // format: c6 f3
   parsed_input parsed = parse_input(command);
-  if(parsed.success != 1){
+  if (parsed.success != 1) {
     return MOVE_INVALID_COMMAND;
   }
-  
-  //figure out destination
-  if(parsed.source == 's'){
-    turn(state); 
-    //TODO remember that the stock can get empty, we need to wrap around
+
+  // figure out destination
+  if (parsed.source == 's') {
+    for(int i = 0; i < parsed.source_amount; i++){
+      turn(state);
+    }
+    // TODO remember that the stock can get empty, we need to wrap around
     return MOVE_OK;
   }
   pile *source_pile = get_pile(state, parsed.source, parsed.source_index);
-  pile *destination_pile = get_pile(state, parsed.destination, parsed.destination_index);
-  
-  //check if the move is valid
-  if(source_pile->num_cards == 0){
+  pile *destination_pile =
+      get_pile(state, parsed.destination, parsed.destination_index);
+
+  // check if the move is valid
+  if (source_pile->num_cards == 0) {
     return MOVE_SOURCE_EMPTY;
   }
   card *source_card = peek_last(source_pile);
-  
+
   // check if the move is valid based on the destination type
-  if(parsed.destination == 'f'){
-    //only ace goes if the destination is empty
-    if(destination_pile->num_cards == 0 && source_card->rank == RANK_A){
-      push(destination_pile, source_card);
+  if (parsed.destination == 'f') {
+    // only ace goes if the destination is empty
+    if (destination_pile->num_cards == 0 && source_card->rank == RANK_A) {
+      // push(destination_pile, source_card);
       pop(source_pile);
+      unshift(destination_pile, source_card);
       return MOVE_OK;
     }
-    else{ 
+    if (destination_pile->num_cards != 0) {
       // non-empty foundation, pick up the first card
-    card *top_foundation_card = peek(destination_pile);
-    if(can_be_placed_on_foundation(*top_foundation_card, *source_card)){
-        push(destination_pile, source_card);
+      card *top_foundation_card = peek(destination_pile);
+      if (can_be_placed_on_foundation(*top_foundation_card, *source_card)) {
         pop(source_pile);
-        return MOVE_OK;    
-      }
-      else{
+        push(destination_pile, source_card);
+        return MOVE_OK;
+      } else {
         return MOVE_INVALID_MOVE;
       }
     }
   }
 
-  //execute the move optionally
+  // execute the move optionally
 
-  //set the return code
+  // set the return code
   return MOVE_OK;
-} 
+}
 
 int main() {
   // srand(time(NULL));
@@ -796,16 +801,16 @@ int main() {
 
   char buffer[80];
   print_all_curses(state);
-  //game loop
+  // game loop
   while (1) {
     getstr(buffer);
-    
+
     erase();
     mvprintw(rows - 3, 0, "You entered: %s", buffer);
-    //pick up the source, destination and attempt the move
+    // pick up the source, destination and attempt the move
     int result = attempt_move(state, buffer);
     mvprintw(rows - 2, 0, "Move result: %d - %s", result, move_results[result]);
-    //show new status in the status bar
+    // show new status in the status bar
     print_all_curses(state);
   }
   getch();
