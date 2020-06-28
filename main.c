@@ -770,6 +770,7 @@ int attempt_move(game_state *state, char *command) {
     if (destination_pile->num_cards == 0 && source_card->rank == RANK_A) {
       // push(destination_pile, source_card);
       pop(source_pile);
+      reveal(peek_last(source_pile));
       push(destination_pile, source_card);
       return MOVE_OK;
     }
@@ -778,6 +779,7 @@ int attempt_move(game_state *state, char *command) {
       card *top_foundation_card = peek(destination_pile);
       if (can_be_placed_on_foundation(*top_foundation_card, *source_card)) {
         pop(source_pile);
+        reveal(peek_last(source_pile));
         push(destination_pile, source_card);
         return MOVE_OK;
       } else {
@@ -789,6 +791,7 @@ int attempt_move(game_state *state, char *command) {
     // king can go in an empty column
     if (destination_pile->num_cards == 0 && source_card->rank == RANK_K) {
       pop(source_pile);
+      reveal(peek_last(source_pile));
       push(destination_pile, source_card);
       return MOVE_OK;
     }
@@ -796,6 +799,7 @@ int attempt_move(game_state *state, char *command) {
       card *bottom_column_card = peek_last(destination_pile);
       if (can_be_placed_bottom(*bottom_column_card, *source_card)) {
         pop(source_pile);
+        reveal(peek_last(source_pile));
         push(destination_pile, source_card);
       } else {
         return MOVE_INVALID_MOVE;
