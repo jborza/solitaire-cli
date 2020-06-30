@@ -750,7 +750,7 @@ char *move_results[] = {"OK", "Invalid command", "Source pile empty",
 void move_card(card *card, pile *source_pile, pile *destination_pile) {
   pop(source_pile);
   reveal(peek_last(source_pile));
-  push(destination_pile, source_card);
+  push(destination_pile, card);
 }
 
 int attempt_move(game_state *state, char *command) {
@@ -776,6 +776,7 @@ int attempt_move(game_state *state, char *command) {
   if (source_pile->num_cards == 0) {
     return MOVE_SOURCE_EMPTY;
   }
+
   card *source_card = peek_last(source_pile);
 
   // check if the move is valid based on the destination type
