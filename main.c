@@ -514,9 +514,17 @@ pile *foundation(game_state *state, int index_one_based) {
   return state->piles[PILE_FOUNDATION1 + index_one_based - 1];
 }
 
-void reveal(card *card) { card->revealed = 1; }
+void reveal(card *card) {
+  if (card == NULL)
+    return;
+  card->revealed = 1;
+}
 
-void hide(card *card) { card->revealed = 0; }
+void hide(card *card) {
+  if (card == NULL)
+    return;
+  card->revealed = 0;
+}
 
 void turn(game_state *state) {
   // moves 1 card from stock to waste
@@ -739,6 +747,12 @@ enum { MOVE_OK, MOVE_INVALID_COMMAND, MOVE_SOURCE_EMPTY, MOVE_INVALID_MOVE };
 char *move_results[] = {"OK", "Invalid command", "Source pile empty",
                         "Invalid move"};
 
+void move_card(card *card, pile *source_pile, pile *destination_pile) {
+  pop(source_pile);
+  reveal(peek_last(source_pile));
+  push(destination_pile, source_card);
+}
+
 int attempt_move(game_state *state, char *command) {
   // format: c6 f3
   parsed_input parsed = parse_input(command);
@@ -768,19 +782,14 @@ int attempt_move(game_state *state, char *command) {
   if (parsed.destination == 'f') {
     // only ace goes if the destination is empty
     if (destination_pile->num_cards == 0 && source_card->rank == RANK_A) {
-      // push(destination_pile, source_card);
-      pop(source_pile);
-      reveal(peek_last(source_pile));
-      push(destination_pile, source_card);
+      move_card(source_card, source_pile, destination_pile);
       return MOVE_OK;
     }
     if (destination_pile->num_cards != 0) {
       // non-empty foundation, pick up the first card
       card *top_foundation_card = peek(destination_pile);
       if (can_be_placed_on_foundation(*top_foundation_card, *source_card)) {
-        pop(source_pile);
-        reveal(peek_last(source_pile));
-        push(destination_pile, source_card);
+        move_card(source_card, source_pile, destination_pile);
         return MOVE_OK;
       } else {
         return MOVE_INVALID_MOVE;
@@ -790,24 +799,20 @@ int attempt_move(game_state *state, char *command) {
   if (parsed.destination == 'c') {
     // king can go in an empty column
     if (destination_pile->num_cards == 0 && source_card->rank == RANK_K) {
-      pop(source_pile);
-      reveal(peek_last(source_pile));
-      push(destination_pile, source_card);
+      move_card(source_card, source_pile, destination_pile);
       return MOVE_OK;
     }
     if (destination_pile->num_cards != 0) {
       card *bottom_column_card = peek_last(destination_pile);
       if (can_be_placed_bottom(*bottom_column_card, *source_card)) {
-        pop(source_pile);
-        reveal(peek_last(source_pile));
-        push(destination_pile, source_card);
+        move_card(source_card, source_pile, destination_pile);
+        return MOVE_OK;
       } else {
         return MOVE_INVALID_MOVE;
       }
     }
   }
 
-  // execute the move optionally
 
   // set the return code
   return MOVE_OK;
