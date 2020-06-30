@@ -743,7 +743,13 @@ pile *get_pile(game_state *state, char pile_prefix, int pile_index_one_based) {
   }
 }
 
-enum { MOVE_OK, MOVE_INVALID_COMMAND, MOVE_SOURCE_EMPTY, MOVE_INVALID_MOVE, MOVE_TOO_MANY_CARDS };
+enum {
+  MOVE_OK,
+  MOVE_INVALID_COMMAND,
+  MOVE_SOURCE_EMPTY,
+  MOVE_INVALID_MOVE,
+  MOVE_TOO_MANY_CARDS
+};
 char *move_results[] = {"OK", "Invalid command", "Source pile empty",
                         "Invalid move", "Too many cards to move!"};
 
@@ -777,57 +783,61 @@ int attempt_move(game_state *state, char *command) {
     return MOVE_SOURCE_EMPTY;
   }
 
-  if(source_pile->num_cards < parsed.source_amount){
+  if (source_pile->num_cards < parsed.source_amount) {
     return MOVE_TOO_MANY_CARDS;
   }
 
+  int first_card_index = source_pile->num_cards - parsed.source_amount;
   // multi-card move
-  if(parsed.source_amount > 1){
+  if (parsed.source_amount > 1) {
     // check if all cards have been revealed
-    int first_card_index = source_pile->num_cards - parsed.source_amount;
     card *c = peek_card_at(source_pile, first_card_index);
-    if(c->revealed == 0){
+    if (c->revealed == 0) {
       return MOVE_TOO_MANY_CARDS;
     }
   }
 
-  card *source_card = peek_last(source_pile);
+  for (int card_index = 0; card_index < parsed.source_amount; card_index++) {
 
-  // check if the move is valid based on the destination type
-  if (parsed.destination == 'f') {
-    // only ace goes if the destination is empty
-    if (destination_pile->num_cards == 0 && source_card->rank == RANK_A) {
-      move_card(source_card, source_pile, destination_pile);
-      return MOVE_OK;
-    }
-    if (destination_pile->num_cards != 0) {
-      // non-empty foundation, pick up the first card
-      card *top_foundation_card = peek(destination_pile);
-      if (can_be_placed_on_foundation(*top_foundation_card, *source_card)) {
+    // card *source_card = peek_last(source_pile);
+    card *source_card = peek_card_at(first_card_index + card_index);
+    //TODO move_card should not pop the source card, but remove and relink as it can be in the middle of the pile
+
+    // check if the move is valid based on the destination type
+    if (parsed.destination == 'f') {
+      // only ace goes if the destination is empty
+      if (destination_pile->num_cards == 0 && source_card->rank == RANK_A) {
         move_card(source_card, source_pile, destination_pile);
         return MOVE_OK;
-      } else {
-        return MOVE_INVALID_MOVE;
+      }
+      if (destination_pile->num_cards != 0) {
+        // non-empty foundation, pick up the first card
+        card *top_foundation_card = peek(destination_pile);
+        if (can_be_placed_on_foundation(*top_foundation_card, *source_card)) {
+          move_card(source_card, source_pile, destination_pile);
+          return MOVE_OK;
+        } else {
+          return MOVE_INVALID_MOVE;
+        }
+      }
+    }
+    if (parsed.destination == 'c') {
+      // king can go in an empty column
+      if (destination_pile->num_cards == 0 && source_card->rank == RANK_K) {
+        move_card(source_card, source_pile, destination_pile);
+        return MOVE_OK;
+      }
+      if (destination_pile->num_cards != 0) {
+        card *bottom_column_card = peek_last(destination_pile);
+        if (can_be_placed_bottom(*bottom_column_card, *source_card)) {
+          move_card(source_card, source_pile, destination_pile);
+          return MOVE_OK;
+        } else {
+          return MOVE_INVALID_MOVE;
+        }
       }
     }
   }
-  if (parsed.destination == 'c') {
-    // king can go in an empty column
-    if (destination_pile->num_cards == 0 && source_card->rank == RANK_K) {
-      move_card(source_card, source_pile, destination_pile);
-      return MOVE_OK;
-    }
-    if (destination_pile->num_cards != 0) {
-      card *bottom_column_card = peek_last(destination_pile);
-      if (can_be_placed_bottom(*bottom_column_card, *source_card)) {
-        move_card(source_card, source_pile, destination_pile);
-        return MOVE_OK;
-      } else {
-        return MOVE_INVALID_MOVE;
-      }
-    }
-  }
-
 
   // set the return code
   return MOVE_OK;
