@@ -743,9 +743,9 @@ pile *get_pile(game_state *state, char pile_prefix, int pile_index_one_based) {
   }
 }
 
-enum { MOVE_OK, MOVE_INVALID_COMMAND, MOVE_SOURCE_EMPTY, MOVE_INVALID_MOVE };
+enum { MOVE_OK, MOVE_INVALID_COMMAND, MOVE_SOURCE_EMPTY, MOVE_INVALID_MOVE, MOVE_TOO_MANY_CARDS };
 char *move_results[] = {"OK", "Invalid command", "Source pile empty",
-                        "Invalid move"};
+                        "Invalid move", "Too many cards to move!"};
 
 void move_card(card *card, pile *source_pile, pile *destination_pile) {
   pop(source_pile);
@@ -775,6 +775,20 @@ int attempt_move(game_state *state, char *command) {
   // check if the move is valid
   if (source_pile->num_cards == 0) {
     return MOVE_SOURCE_EMPTY;
+  }
+
+  if(source_pile->num_cards < parsed.source_amount){
+    return MOVE_TOO_MANY_CARDS;
+  }
+
+  // multi-card move
+  if(parsed.source_amount > 1){
+    // check if all cards have been revealed
+    int first_card_index = source_pile->num_cards - parsed.source_amount;
+    card *c = peek_card_at(source_pile, first_card_index);
+    if(c->revealed == 0){
+      return MOVE_TOO_MANY_CARDS;
+    }
   }
 
   card *source_card = peek_last(source_pile);
@@ -821,6 +835,7 @@ int attempt_move(game_state *state, char *command) {
 
 int main() {
   // srand(time(NULL));
+  srand(2);
   setlocale(LC_ALL, "");
   init_curses();
 
