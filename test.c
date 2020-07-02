@@ -76,3 +76,17 @@ void test_pile_operations() {
   print_deck(initial_deck);
   print_pile_ptrs(initial_deck);
 }
+
+void print_pile_ptrs(pile *pile) {
+  printf("@[");
+  card_node *head = pile->head;
+  for (int i = 0; i < pile->num_cards; i++) {
+    card *c = head->value;
+    print_card(c);
+    printf(" @ %p | ", c);
+
+    head = head->next;
+  }
+  printf("] (%d)\n", pile->num_cards);
+}
+

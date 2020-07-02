@@ -358,19 +358,6 @@ void print_deck(pile *pile) {
   printf("] (%d)\n", pile->num_cards);
 }
 
-void print_pile_ptrs(pile *pile) {
-  printf("@[");
-  card_node *head = pile->head;
-  for (int i = 0; i < pile->num_cards; i++) {
-    card *c = head->value;
-    print_card(c);
-    printf(" @ %p | ", c);
-
-    head = head->next;
-  }
-  printf("] (%d)\n", pile->num_cards);
-}
-
 void insert(pile *pile, card *card, int idx) {
   card_node *pre_tail = pile->head;
   for (int i = 0; i < idx; i++)
@@ -396,7 +383,6 @@ void shuffle_pile(pile *pile) {
   printf(" ");                                                                 \
   print_card_ptr(x);                                                           \
   printf("\n");
-
 
 pile *stock(game_state *state) { return state->piles[PILE_DECK]; }
 
@@ -699,17 +685,19 @@ int attempt_move(game_state *state, char *command) {
 
   for (int card_index = 0; card_index < parsed.source_amount; card_index++) {
 
-    // card index doesn't move - the card is 
-    card *source_card =
-        peek_card_at(source_pile, first_card_index);
+    // card index doesn't move - the card is
+    card *source_card = peek_card_at(source_pile, first_card_index);
 
     // check if the move is valid based on the destination type
     if (parsed.destination == 'f') {
       // only ace goes if the destination is empty
-      if (is_empty(destination_pile) && source_card->rank == RANK_A) {
-        move_card(source_card, source_pile, destination_pile);
-      }
-      if (!is_empty(destination_pile)) {
+      if (is_empty(destination_pile)) {
+        if (source_card->rank == RANK_A) {
+          move_card(source_card, source_pile, destination_pile);
+        } else {
+          return MOVE_INVALID_MOVE;
+        }
+      } else {
         // non-empty foundation, pick up the first card
         card *top_foundation_card = peek_last(destination_pile);
         if (can_be_placed_on_foundation(*top_foundation_card, *source_card)) {
@@ -721,10 +709,13 @@ int attempt_move(game_state *state, char *command) {
     }
     if (parsed.destination == 'c') {
       // king can go in an empty column
-      if (is_empty(destination_pile) && source_card->rank == RANK_K) {
-        move_card(source_card, source_pile, destination_pile);
-      }
-      if (!is_empty(destination_pile)) {
+      if (is_empty(destination_pile)) {
+        if (source_card->rank == RANK_K) {
+          move_card(source_card, source_pile, destination_pile);
+        } else {
+          return MOVE_INVALID_MOVE;
+        }
+      } else {
         card *bottom_column_card = peek_last(destination_pile);
         if (can_be_placed_bottom(*bottom_column_card, *source_card)) {
           move_card(source_card, source_pile, destination_pile);
