@@ -255,6 +255,33 @@ card_node *make_node(card *card) {
   return node;
 }
 
+int is_empty(pile *pile) { return pile->num_cards == 0; }
+
+// remove a card from a pile, relinking the list
+void delete (pile *pile, card *card) {
+  if (is_empty(pile)) {
+    return;
+  }
+  // no previous node for the first item
+  card_node *prev = NULL;
+  card_node *current;
+  for (current = pile->head; current != NULL;
+       prev = current, current = current->next) {
+    if (current->value == card) {
+      // special case if the first item was found
+      if (prev == NULL) {
+        pile->head = NULL;
+      } else {
+        // skip over the current item
+        prev->next = current->next;
+      }
+      pile->num_cards--;
+      free(current);
+      return;
+    }
+  }
+}
+
 // append to the end of the list
 void push(pile *pile, card *card) {
   card_node *tail = find_tail(pile);
@@ -754,7 +781,7 @@ char *move_results[] = {"OK", "Invalid command", "Source pile empty",
                         "Invalid move", "Too many cards to move!"};
 
 void move_card(card *card, pile *source_pile, pile *destination_pile) {
-  pop(source_pile);
+  delete (source_pile, card);
   reveal(peek_last(source_pile));
   push(destination_pile, card);
 }
@@ -779,7 +806,7 @@ int attempt_move(game_state *state, char *command) {
       get_pile(state, parsed.destination, parsed.destination_index);
 
   // check if the move is valid
-  if (source_pile->num_cards == 0) {
+  if (is_empty(source_pile)) {
     return MOVE_SOURCE_EMPTY;
   }
 
@@ -800,22 +827,20 @@ int attempt_move(game_state *state, char *command) {
   for (int card_index = 0; card_index < parsed.source_amount; card_index++) {
 
     // card *source_card = peek_last(source_pile);
-    card *source_card = peek_card_at(first_card_index + card_index);
-    //TODO move_card should not pop the source card, but remove and relink as it can be in the middle of the pile
+    card *source_card =
+        peek_card_at(source_pile, first_card_index + card_index);
 
     // check if the move is valid based on the destination type
     if (parsed.destination == 'f') {
       // only ace goes if the destination is empty
-      if (destination_pile->num_cards == 0 && source_card->rank == RANK_A) {
+      if (is_empty(destination_pile) && source_card->rank == RANK_A) {
         move_card(source_card, source_pile, destination_pile);
-        return MOVE_OK;
       }
-      if (destination_pile->num_cards != 0) {
+      if (!is_empty(destination_pile)) {
         // non-empty foundation, pick up the first card
         card *top_foundation_card = peek(destination_pile);
         if (can_be_placed_on_foundation(*top_foundation_card, *source_card)) {
           move_card(source_card, source_pile, destination_pile);
-          return MOVE_OK;
         } else {
           return MOVE_INVALID_MOVE;
         }
@@ -823,20 +848,19 @@ int attempt_move(game_state *state, char *command) {
     }
     if (parsed.destination == 'c') {
       // king can go in an empty column
-      if (destination_pile->num_cards == 0 && source_card->rank == RANK_K) {
+      if (is_empty(destination_pile) && source_card->rank == RANK_K) {
         move_card(source_card, source_pile, destination_pile);
-        return MOVE_OK;
       }
-      if (destination_pile->num_cards != 0) {
+      if (!is_empty(destination_pile)) {
         card *bottom_column_card = peek_last(destination_pile);
         if (can_be_placed_bottom(*bottom_column_card, *source_card)) {
           move_card(source_card, source_pile, destination_pile);
-          return MOVE_OK;
         } else {
           return MOVE_INVALID_MOVE;
         }
       }
     }
+    return MOVE_OK;
   }
 
   // set the return code
