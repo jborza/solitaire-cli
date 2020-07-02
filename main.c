@@ -634,15 +634,22 @@ enum {
   MOVE_INVALID_COMMAND,
   MOVE_SOURCE_EMPTY,
   MOVE_INVALID_MOVE,
-  MOVE_TOO_MANY_CARDS
+  MOVE_TOO_MANY_CARDS,
+  MOVE_CANNOT_REDEAL
 };
 char *move_results[] = {"OK", "Invalid command", "Source pile empty",
-                        "Invalid move", "Too many cards to move!"};
+                        "Invalid move", "Too many cards to move!", "Cannot redeal, stock pile empty"};
 
 void move_card(card *card, pile *source_pile, pile *destination_pile) {
   delete (source_pile, card);
   reveal(peek_last(source_pile));
   push(destination_pile, card);
+}
+
+void redeal(game_state *state){
+  while(!is_empty(waste(state))){
+    push(stock(state), shift(waste(state)));
+  }
 }
 
 int attempt_move(game_state *state, char *command) {
@@ -655,6 +662,13 @@ int attempt_move(game_state *state, char *command) {
   // figure out destination
   if (parsed.source == 's') {
     for (int i = 0; i < parsed.source_amount; i++) {
+      if(is_empty(stock(state))){
+        //try to redeal
+        if(is_empty(waste(state))){
+          return MOVE_CANNOT_REDEAL;
+        }
+        redeal(state);
+      }
       turn(state);
     }
     // TODO remember that the stock can get empty, we need to wrap around
