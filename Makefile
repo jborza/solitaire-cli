@@ -1,6 +1,6 @@
 CC=cc
 sol:
-	$(CC) -o solitaire -Wall *.c -lncursesw -ltinfo
+	$(CC) -o solitaire -Wall main.c -lncursesw -ltinfo
 debug:
-	$(CC) -g -o solitaire -Wall *.c -lncursesw -ltinfo
+	$(CC) -g -o solitaire -Wall main.c -lncursesw -ltinfo
 
