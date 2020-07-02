@@ -178,56 +178,6 @@ int can_be_placed_on_foundation(card parent, card child) {
 
 #ifdef PILE_LIST
 
-#endif
-
-#ifdef PILE_ARRAY
-typedef struct pile {
-  int num_cards;
-  card **cards;
-} pile;
-
-pile *make_pile() {
-  pile *pile = mallocz(sizeof(pile));
-  pile->num_cards = 0;
-  pile->cards = malloc(sizeof(card *) * CARD_COUNT);
-  return pile;
-}
-
-pile *make_deck() {
-  pile *deck = make_pile();
-  for (int rank = 0; rank < RANK_COUNT; rank++) {
-    for (int suit = 0; suit < SUIT_COUNT; suit++) {
-      deck->cards[deck->num_cards++] = make_card_ptr(suit, rank);
-    }
-  }
-  return deck;
-}
-
-void append(pile *pile, card *card) { pile->cards[pile->num_cards++] = card; }
-
-// remove a card from the end of the list
-card *pop(pile *pile) {
-  card *card = pile->cards[pile->num_cards - 1];
-  pile->num_cards--;
-  return card;
-}
-
-// remove a card from the beginning of the pile
-card *dequeue(pile *pile) {
-  card *card = pile->cards[0];
-  pile->num_cards--;
-  // shift all cards to the left
-  size_t target_size = (sizeof(card_ptr) * pile->num_cards);
-  memmove(&pile->cards, &pile->cards[1], target_size);
-  pile->cards = realloc(pile->cards, sizeof(card_ptr) * CARD_COUNT);
-  return card;
-}
-
-card *peek_card_at(pile *pile, int index) { return pile->cards[index]; }
-#endif
-
-#ifdef PILE_LIST
-
 typedef struct card_node {
   card *value;
   struct card_node *next;
