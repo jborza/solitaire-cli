@@ -6,6 +6,9 @@
 
 #include <locale.h>
 #include <ncurses.h>
+
+//#define DEBUG_PRINT
+
 // utility functions
 
 void *mallocz(size_t size) {
@@ -457,6 +460,7 @@ int rows, cols;
 
 void init_curses() {
   initscr();
+  keypad(stdscr, TRUE);
   use_default_colors();
   start_color();
   getmaxyx(stdscr, rows, cols);
@@ -466,7 +470,7 @@ void init_curses() {
 
 void printw_card(card *c) {
   if (c == NULL) {
-    printw("<NULL>");
+    printw("[     ]");
     return;
   }
   int color_pair = is_black(*c) ? BLACK_PAIR : RED_PAIR;
@@ -474,7 +478,11 @@ void printw_card(card *c) {
   if (c->revealed) {
     printw("%s%s", rank_to_charptr(c->rank), suit_to_charptr(c->suit));
   } else {
+#ifdef DEBUG_PRINT
     printw("(%s%s)", rank_to_charptr(c->rank), suit_to_charptr(c->suit));
+#else
+    printw("[ ]");
+#endif
   }
   attroff(COLOR_PAIR(color_pair));
 }
@@ -550,6 +558,8 @@ void print_all_curses(game_state *state) {
       printw_card(peek_card_at(col, c));
     }
   }
+
+#ifdef DEBUG_PRINT
   // debug: stock, waste
   mvprintw(17, 0, "stock:");
   debug_print_pile(stock_pile, 18, 0);
@@ -563,6 +573,7 @@ void print_all_curses(game_state *state) {
   debug_print_pile(foundation(state, 3), 18, 64);
   mvprintw(17, 80, "foundation 4:");
   debug_print_pile(foundation(state, 4), 18, 80);
+#endif
 
   // status bar for the commands
   print_prompt();
@@ -671,7 +682,6 @@ int attempt_move(game_state *state, char *command) {
       }
       turn(state);
     }
-    // TODO remember that the stock can get empty, we need to wrap around
     return MOVE_OK;
   }
   pile *source_pile = get_pile(state, parsed.source, parsed.source_index);
