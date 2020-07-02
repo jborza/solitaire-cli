@@ -573,6 +573,10 @@ void print_all_curses(game_state *state) {
   debug_print_pile(foundation(state, 1), 18, 32);
   mvprintw(17, 48, "foundation 2:");
   debug_print_pile(foundation(state, 2), 18, 48);
+  mvprintw(17, 64, "foundation 3:");
+  debug_print_pile(foundation(state, 3), 18, 64);
+  mvprintw(17, 80, "foundation 4:");
+  debug_print_pile(foundation(state, 4), 18, 80);
 
   // status bar for the commands
   print_prompt();
@@ -707,7 +711,7 @@ int attempt_move(game_state *state, char *command) {
       }
       if (!is_empty(destination_pile)) {
         // non-empty foundation, pick up the first card
-        card *top_foundation_card = peek(destination_pile);
+        card *top_foundation_card = peek_last(destination_pile);
         if (can_be_placed_on_foundation(*top_foundation_card, *source_card)) {
           move_card(source_card, source_pile, destination_pile);
         } else {
