@@ -223,7 +223,7 @@ void delete (pile *pile, card *card) {
     if (current->value == card) {
       // special case if the first item was found
       if (prev == NULL) {
-        pile->head = NULL;
+        pile->head = current->next;
       } else {
         // skip over the current item
         prev->next = current->next;
@@ -602,6 +602,7 @@ parsed_input parse_input(char *command) {
   // parser patterns
   char *pattern_multi_move = "%dc%d c%d";
   char *pattern_single_move = "c%d %c%d";
+  char *pattern_single_move2 = "%d %d";
   char *pattern_waste_move = "w %c%d";
   char *pattern_multi_stock = "%ds";
   char *pattern_stock = "s";
@@ -612,6 +613,10 @@ parsed_input parse_input(char *command) {
   } else if (sscanf(command, pattern_single_move, &parsed.source_index,
                     &parsed.destination, &parsed.destination_index) == 3) {
     parsed.source = 'c';
+  } else if (sscanf(command, pattern_single_move2, &parsed.source_index,
+                    &parsed.destination_index) == 2) {
+    parsed.source = 'c';
+    parsed.destination = 'c';
   } else if (sscanf(command, pattern_waste_move, &parsed.destination,
                     &parsed.destination_index) == 2) {
     parsed.source = 'w';
@@ -648,8 +653,12 @@ enum {
   MOVE_TOO_MANY_CARDS,
   MOVE_CANNOT_REDEAL
 };
-char *move_results[] = {"OK", "Invalid command", "Source pile empty",
-                        "Invalid move", "Too many cards to move!", "Cannot redeal, stock pile empty"};
+char *move_results[] = {"OK",
+                        "Invalid command",
+                        "Source pile empty",
+                        "Invalid move",
+                        "Too many cards to move!",
+                        "Cannot redeal, stock pile empty"};
 
 void move_card(card *card, pile *source_pile, pile *destination_pile) {
   delete (source_pile, card);
@@ -657,8 +666,8 @@ void move_card(card *card, pile *source_pile, pile *destination_pile) {
   push(destination_pile, card);
 }
 
-void redeal(game_state *state){
-  while(!is_empty(waste(state))){
+void redeal(game_state *state) {
+  while (!is_empty(waste(state))) {
     push(stock(state), shift(waste(state)));
   }
 }
@@ -673,9 +682,9 @@ int attempt_move(game_state *state, char *command) {
   // figure out destination
   if (parsed.source == 's') {
     for (int i = 0; i < parsed.source_amount; i++) {
-      if(is_empty(stock(state))){
-        //try to redeal
-        if(is_empty(waste(state))){
+      if (is_empty(stock(state))) {
+        // try to redeal
+        if (is_empty(waste(state))) {
           return MOVE_CANNOT_REDEAL;
         }
         redeal(state);
@@ -709,7 +718,7 @@ int attempt_move(game_state *state, char *command) {
 
   for (int card_index = 0; card_index < parsed.source_amount; card_index++) {
 
-    // card index doesn't move - the card is
+    // card index doesn't move - the card is always at the same index
     card *source_card = peek_card_at(source_pile, first_card_index);
 
     // check if the move is valid based on the destination type
@@ -756,7 +765,7 @@ int attempt_move(game_state *state, char *command) {
 
 int main() {
   // srand(time(NULL));
-  srand(2);
+  srand(3);
   setlocale(LC_ALL, "");
   init_curses();
 
