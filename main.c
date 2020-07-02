@@ -826,9 +826,9 @@ int attempt_move(game_state *state, char *command) {
 
   for (int card_index = 0; card_index < parsed.source_amount; card_index++) {
 
-    // card *source_card = peek_last(source_pile);
+    // card index doesn't move - the card is 
     card *source_card =
-        peek_card_at(source_pile, first_card_index + card_index);
+        peek_card_at(source_pile, first_card_index);
 
     // check if the move is valid based on the destination type
     if (parsed.destination == 'f') {
@@ -860,7 +860,6 @@ int attempt_move(game_state *state, char *command) {
         }
       }
     }
-    return MOVE_OK;
   }
 
   // set the return code
