@@ -210,6 +210,13 @@ void delete (pile *pile, card *card) {
   for (current = pile->head; current != NULL;
        prev = current, current = current->next) {
     if (current->value == card) {
+      // special case if the first item was found
+      if (prev == NULL) {
+        pile->head = current->next;
+      } else {
+        // skip over the current item
+        prev->next = current->next;
+      }
       // skip the current item in the list
       pile->head = current->next;
       pile->num_cards--;
