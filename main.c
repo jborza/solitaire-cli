@@ -764,8 +764,8 @@ int attempt_move(game_state *state, char *command) {
 }
 
 int main() {
-  // srand(time(NULL));
-  srand(3);
+  srand(time(NULL));
+//  srand(3);
   setlocale(LC_ALL, "");
   init_curses();
 
