@@ -214,11 +214,9 @@ void delete (pile *pile, card *card) {
       if (prev == NULL) {
         pile->head = current->next;
       } else {
-        // skip over the current item
+        // skip the current item in the list
         prev->next = current->next;
       }
-      // skip the current item in the list
-      pile->head = current->next;
       pile->num_cards--;
       free(current);
       return;
@@ -266,7 +264,7 @@ card *shift(pile *pile) {
   pile->head = old_head->next;
 
   card *card = old_head->value;
-  // free(old_head);
+  free(old_head);
   return card;
 }
 
