@@ -20,23 +20,12 @@ void *mallocz(size_t size) {
   return ptr;
 }
 
-// definitions
-
-// 2660  BLACK SPADE SUIT
-// 2661  WHITE HEART SUIT
-// 2662  WHITE DIAMOND SUIT
-// 2663  BLACK CLUB SUIT
-// 2664  WHITE SPADE SUIT
-// 2665  BLACK HEART SUIT
-// 2666  BLACK DIAMOND SUIT
-// 2667  WHITE CLUB SUIT
-
 enum {
-  SUIT_HEART,   //
-  SUIT_SPADE,   //
-  SUIT_CLUB,    //
-  SUIT_DIAMOND, //
-  SUIT_COUNT    // ♥♠♣♦
+  SUIT_HEART,
+  SUIT_SPADE,
+  SUIT_CLUB,
+  SUIT_DIAMOND,
+  SUIT_COUNT // ♥♠♣♦
 };
 
 enum {
@@ -69,13 +58,13 @@ typedef card *card_ptr;
 const char *suit_to_charptr(int suit) {
   switch (suit) {
   case SUIT_HEART:
-    return "\u2665";
+    return "\u2665"; // 2665  BLACK HEART SUIT
   case SUIT_SPADE:
-    return "\u2660";
+    return "\u2660"; // 2660  BLACK SPADE SUIT
   case SUIT_CLUB:
-    return "\u2663";
+    return "\u2663"; // 2663  BLACK CLUB SUIT
   case SUIT_DIAMOND:
-    return "\u2666";
+    return "\u2666"; // 2666  BLACK DIAMOND SUIT
   default:
     return "?";
   }
@@ -221,13 +210,8 @@ void delete (pile *pile, card *card) {
   for (current = pile->head; current != NULL;
        prev = current, current = current->next) {
     if (current->value == card) {
-      // special case if the first item was found
-      if (prev == NULL) {
-        pile->head = current->next;
-      } else {
-        // skip over the current item
-        prev->next = current->next;
-      }
+      // skip the current item in the list
+      pile->head = current->next;
       pile->num_cards--;
       free(current);
       return;
@@ -301,7 +285,7 @@ card *peek_last(pile *pile) {
 }
 
 pile *make_pile() {
-  pile *pile_ptr = mallocz(sizeof(pile *));
+  pile *pile_ptr = mallocz(sizeof(pile));
   pile_ptr->num_cards = 0;
   return pile_ptr;
 }
@@ -473,10 +457,11 @@ void printw_card(card *c) {
     printw("[     ]");
     return;
   }
-  int color_pair = is_black(*c) ? BLACK_PAIR : RED_PAIR;
-  attron(COLOR_PAIR(color_pair));
   if (c->revealed) {
+    int color_pair = is_black(*c) ? BLACK_PAIR : RED_PAIR;
+    attron(COLOR_PAIR(color_pair));
     printw("%s%s", rank_to_charptr(c->rank), suit_to_charptr(c->suit));
+    attroff(COLOR_PAIR(color_pair));
   } else {
 #ifdef DEBUG_PRINT
     printw("(%s%s)", rank_to_charptr(c->rank), suit_to_charptr(c->suit));
@@ -484,7 +469,6 @@ void printw_card(card *c) {
     printw("[ ]");
 #endif
   }
-  attroff(COLOR_PAIR(color_pair));
 }
 
 void printw_pile_size(pile *pile) { printw("(%d cards)", pile->num_cards); }
@@ -765,7 +749,7 @@ int attempt_move(game_state *state, char *command) {
 
 int main() {
   srand(time(NULL));
-//  srand(3);
+  //  srand(3);
   setlocale(LC_ALL, "");
   init_curses();
 
