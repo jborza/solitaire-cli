@@ -602,10 +602,6 @@ parsed_input parse_input(char *command) {
   } else if (sscanf(command, pattern_single_move, &parsed.source_index,
                     &parsed.destination, &parsed.destination_index) == 3) {
     parsed.source = 'c';
-  } else if (sscanf(command, pattern_single_move2, &parsed.source_index,
-                    &parsed.destination_index) == 2) {
-    parsed.source = 'c';
-    parsed.destination = 'c';
   } else if (sscanf(command, pattern_waste_move, &parsed.destination,
                     &parsed.destination_index) == 2) {
     parsed.source = 'w';
@@ -613,6 +609,10 @@ parsed_input parse_input(char *command) {
     parsed.source = 's';
   } else if (strcmp(command, pattern_stock) == 0) {
     parsed.source = 's';
+  } else if (sscanf(command, pattern_single_move2, &parsed.source_index,
+                    &parsed.destination_index) == 2) {
+    parsed.source = 'c';
+    parsed.destination = 'c';
   } else {
     parsed.success = 0;
   }
@@ -640,14 +640,16 @@ enum {
   MOVE_SOURCE_EMPTY,
   MOVE_INVALID_MOVE,
   MOVE_TOO_MANY_CARDS,
-  MOVE_CANNOT_REDEAL
+  MOVE_CANNOT_REDEAL,
+  MOVE_INVALID_DESTINATION
 };
 char *move_results[] = {"OK",
                         "Invalid command",
                         "Source pile empty",
                         "Invalid move",
                         "Too many cards to move!",
-                        "Cannot redeal, stock pile empty"};
+                        "Cannot redeal, stock pile empty",
+                        "Invalid destination"};
 
 void move_card(card *card, pile *source_pile, pile *destination_pile) {
   delete (source_pile, card);
@@ -657,7 +659,9 @@ void move_card(card *card, pile *source_pile, pile *destination_pile) {
 
 void redeal(game_state *state) {
   while (!is_empty(waste(state))) {
-    push(stock(state), shift(waste(state)));
+    card *card = shift(waste(state));
+    hide(card);
+    push(stock(state), card);
   }
 }
 
@@ -728,8 +732,7 @@ int attempt_move(game_state *state, char *command) {
           return MOVE_INVALID_MOVE;
         }
       }
-    }
-    if (parsed.destination == 'c') {
+    } else if (parsed.destination == 'c') {
       // king can go in an empty column
       if (is_empty(destination_pile)) {
         if (source_card->rank == RANK_K) {
@@ -745,6 +748,8 @@ int attempt_move(game_state *state, char *command) {
           return MOVE_INVALID_MOVE;
         }
       }
+    } else {
+      return MOVE_INVALID_DESTINATION;
     }
   }
 
