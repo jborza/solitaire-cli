@@ -605,15 +605,15 @@ parsed_input parse_input(char *command) {
   } else if (sscanf(command, pattern_waste_move, &parsed.destination,
                     &parsed.destination_index) == 2) {
     parsed.source = 'w';
-  } else if (sscanf(command, pattern_multi_stock, &parsed.source_amount) == 1) {
-    parsed.source = 's';
-  } else if (strcmp(command, pattern_stock) == 0) {
-    parsed.source = 's';
   } else if (sscanf(command, pattern_single_move2, &parsed.source_index,
                     &parsed.destination_index) == 2) {
     parsed.source = 'c';
     parsed.destination = 'c';
-  } else {
+  } else if (sscanf(command, pattern_multi_stock, &parsed.source_amount) == 1) {
+    parsed.source = 's';
+  } else if (strcmp(command, pattern_stock) == 0) {
+    parsed.source = 's';
+  }  else {
     parsed.success = 0;
   }
   return parsed;
@@ -769,15 +769,14 @@ int main() {
 
   char buffer[80];
   print_all_curses(state);
+  
   // game loop
   while (1) {
     getstr(buffer);
-
     erase();
-    mvprintw(rows - 3, 0, "You entered: %s", buffer);
     // pick up the source, destination and attempt the move
     int result = attempt_move(state, buffer);
-    mvprintw(rows - 2, 0, "Move result: %d - %s", result, move_results[result]);
+    mvprintw(rows - 2, 0, "Move status: %s", move_results[result]);
     // show new status in the status bar
     print_all_curses(state);
   }
