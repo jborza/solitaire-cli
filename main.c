@@ -178,6 +178,7 @@ typedef struct card_node {
 typedef struct pile {
   card_node *head;
   int num_cards;
+  char type;
 } pile;
 
 card_node *find_tail(pile *pile) {
@@ -309,7 +310,7 @@ void fill_deck(pile *pile) {
 
 enum {
   PILE_DECK,
-  PILE_REVEALED,
+  PILE_WASTE,
   PILE_FOUNDATION1,
   PILE_FOUNDATION2,
   PILE_FOUNDATION3,
@@ -324,9 +325,12 @@ enum {
   PILE_COUNT
 };
 
+char pile_types[] = "dwffffccccccc";
+
 typedef struct game_state {
   pile **piles;
   int pile_count;
+  int score;
 } game_state;
 
 game_state *make_game_state() {
@@ -334,6 +338,7 @@ game_state *make_game_state() {
   state->piles = mallocz(sizeof(pile *) * PILE_COUNT);
   for (int pile_idx = 0; pile_idx < PILE_COUNT; pile_idx++) {
     state->piles[pile_idx] = make_pile();
+    state->piles[pile_idx]->type = pile_types[pile_idx];
   }
   return state;
 }
@@ -378,7 +383,7 @@ void shuffle_pile(pile *pile) {
 
 pile *stock(game_state *state) { return state->piles[PILE_DECK]; }
 
-pile *waste(game_state *state) { return state->piles[PILE_REVEALED]; }
+pile *waste(game_state *state) { return state->piles[PILE_WASTE]; }
 
 pile *column(game_state *state, int index_one_based) {
   return state->piles[PILE_COLUMN1 + index_one_based - 1];
@@ -388,10 +393,12 @@ pile *foundation(game_state *state, int index_one_based) {
   return state->piles[PILE_FOUNDATION1 + index_one_based - 1];
 }
 
-void reveal(card *card) {
+// returns 1 if a card was revealed
+int reveal(card *card) {
   if (card == NULL)
-    return;
+    return 0;
   card->revealed = 1;
+  return 1;
 }
 
 void hide(card *card) {
@@ -404,7 +411,7 @@ void turn(game_state *state) {
   // moves 1 card from stock to waste
   card *revealed_card = shift(stock(state));
   reveal(revealed_card);
-  push(state->piles[PILE_REVEALED], revealed_card);
+  push(state->piles[PILE_WASTE], revealed_card);
 }
 
 void deal(game_state *state) {
@@ -426,19 +433,6 @@ void deal(game_state *state) {
   }
   // reveal 1 card
   turn(state);
-}
-
-void print_all(game_state *state) {
-  printf("\nstock:\n");
-  print_deck(stock(state));
-  printf("\nrevealed:\n");
-  print_deck(state->piles[PILE_REVEALED]);
-
-  for (int i = 0; i < COLUMN_COUNT; i++) {
-    int column = i + 1;
-    printf("\ncolumn %d\n", column);
-    print_deck(state->piles[PILE_COLUMN1 + i]);
-  }
 }
 
 int rows, cols;
@@ -486,7 +480,9 @@ char *first_row_headers[] = {"Stock",        "Waste",        "",
 char *second_row_headers[] = {"Column 1", "Column 2", "Column 3", "Column 4",
                               "Column 5", "Column 6", "Column 7"};
 
-void print_prompt() {
+void print_prompt(game_state *state) {
+  move(rows - 3, 0);
+  printw("Score: %d", state->score);
   move(rows - 1, 0);
   printw("solitaire-cli > ");
 }
@@ -565,7 +561,7 @@ void print_all_curses(game_state *state) {
 #endif
 
   // status bar for the commands
-  print_prompt();
+  print_prompt(state);
 }
 
 void prepare_game(game_state *state) {
@@ -573,6 +569,7 @@ void prepare_game(game_state *state) {
   fill_deck(stock_pile);
   shuffle_pile(stock_pile);
   deal(state);
+  state->score = 0;
 }
 
 typedef struct parsed_input {
@@ -613,7 +610,7 @@ parsed_input parse_input(char *command) {
     parsed.source = 's';
   } else if (strcmp(command, pattern_stock) == 0) {
     parsed.source = 's';
-  }  else {
+  } else {
     parsed.success = 0;
   }
   return parsed;
@@ -634,6 +631,13 @@ pile *get_pile(game_state *state, char pile_prefix, int pile_index_one_based) {
   }
 }
 
+void add_score(game_state *state, int score) {
+  state->score += score;
+  if (state->score < 0) {
+    state->score = 0;
+  }
+}
+
 enum {
   MOVE_OK,
   MOVE_INVALID_COMMAND,
@@ -651,10 +655,21 @@ char *move_results[] = {"OK",
                         "Cannot redeal, stock pile empty",
                         "Invalid destination"};
 
-void move_card(card *card, pile *source_pile, pile *destination_pile) {
+void move_card(game_state *state, card *card, pile *source_pile,
+               pile *destination_pile) {
   delete (source_pile, card);
-  reveal(peek_last(source_pile));
+  if (reveal(peek_last(source_pile))) {
+    add_score(state, 5); // turn over column card
+  }
   push(destination_pile, card);
+
+  // add score for the moves
+  if (destination_pile->type == 'f') {
+    add_score(state, 10);
+  }
+  if (source_pile->type == 'w' && destination_pile->type == 'c') {
+    add_score(state, 5);
+  }
 }
 
 void redeal(game_state *state) {
@@ -663,6 +678,7 @@ void redeal(game_state *state) {
     hide(card);
     push(stock(state), card);
   }
+  add_score(state, -100);
 }
 
 int attempt_move(game_state *state, char *command) {
@@ -719,7 +735,7 @@ int attempt_move(game_state *state, char *command) {
       // only ace goes if the destination is empty
       if (is_empty(destination_pile)) {
         if (source_card->rank == RANK_A) {
-          move_card(source_card, source_pile, destination_pile);
+          move_card(state, source_card, source_pile, destination_pile);
         } else {
           return MOVE_INVALID_MOVE;
         }
@@ -727,7 +743,7 @@ int attempt_move(game_state *state, char *command) {
         // non-empty foundation, pick up the first card
         card *top_foundation_card = peek_last(destination_pile);
         if (can_be_placed_on_foundation(*top_foundation_card, *source_card)) {
-          move_card(source_card, source_pile, destination_pile);
+          move_card(state, source_card, source_pile, destination_pile);
         } else {
           return MOVE_INVALID_MOVE;
         }
@@ -736,14 +752,14 @@ int attempt_move(game_state *state, char *command) {
       // king can go in an empty column
       if (is_empty(destination_pile)) {
         if (source_card->rank == RANK_K) {
-          move_card(source_card, source_pile, destination_pile);
+          move_card(state, source_card, source_pile, destination_pile);
         } else {
           return MOVE_INVALID_MOVE;
         }
       } else {
         card *bottom_column_card = peek_last(destination_pile);
         if (can_be_placed_bottom(*bottom_column_card, *source_card)) {
-          move_card(source_card, source_pile, destination_pile);
+          move_card(state, source_card, source_pile, destination_pile);
         } else {
           return MOVE_INVALID_MOVE;
         }
@@ -769,7 +785,7 @@ int main() {
 
   char buffer[80];
   print_all_curses(state);
-  
+
   // game loop
   while (1) {
     getstr(buffer);
