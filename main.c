@@ -51,9 +51,6 @@ typedef struct card {
   int revealed;
 } card;
 
-typedef card *card_ptr;
-
-#define UNICODE
 #ifdef UNICODE
 const char *suit_to_charptr(int suit) {
   switch (suit) {
@@ -370,7 +367,7 @@ void shuffle_pile(pile *pile) {
   for (int i = 0; i < shuffle_times; i++) {
     // unshift a card and insert to random place
     int idx = rand() % pile->num_cards - 1;
-    card_ptr card = shift(pile);
+    card *card = shift(pile);
     insert(pile, card, idx);
   }
 }
