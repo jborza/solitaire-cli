@@ -642,7 +642,8 @@ enum {
   MOVE_INVALID_MOVE,
   MOVE_TOO_MANY_CARDS,
   MOVE_CANNOT_REDEAL,
-  MOVE_INVALID_DESTINATION
+  MOVE_INVALID_DESTINATION,
+  MOVE_INVALID_SOURCE
 };
 char *move_results[] = {"OK",
                         "Invalid command",
@@ -650,7 +651,7 @@ char *move_results[] = {"OK",
                         "Invalid move",
                         "Too many cards to move!",
                         "Cannot redeal, stock pile empty",
-                        "Invalid destination"};
+                        "Invalid destination", "Invalid source"};
 
 void move_card(game_state *state, card *card, pile *source_pile,
                pile *destination_pile) {
@@ -683,6 +684,18 @@ int attempt_move(game_state *state, char *command) {
   parsed_input parsed = parse_input(command);
   if (parsed.success != 1) {
     return MOVE_INVALID_COMMAND;
+  }
+
+  //catch source / destination too high
+  if((parsed.destination == 'c' && ((parsed.destination_index >= COLUMN_COUNT) || (parsed.destination_index < 1)))
+      || (parsed.destination == 'f' && ((parsed.destination_index >= FOUNDATION_COUNT) || (parsed.destination_index < 1))))
+  {
+    return MOVE_INVALID_DESTINATION;
+  }
+
+  // source_index can also be broken
+  if(parsed.source == 'c' && ((parsed.source_index >= COLUMN_COUNT) || (parsed.source_index < 1))){
+    return MOVE_INVALID_SOURCE;
   }
 
   // figure out destination
