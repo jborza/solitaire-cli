@@ -7,8 +7,9 @@ struct linkList {
 };
 
 void loadLinkList(
-    struct linkList* oneLinkList,
+    struct linkList* headLinkList,
     char oneChar,
     int oneInt,
-    struct linkList* secondLinkList,
-)
+    struct linkList* tailLinkList
+);
+#endif

@@ -195,7 +195,10 @@ card_node *make_node(card *card) {
   return node;
 }
 
-int is_empty(pile *pile) { return pile->num_cards == 0; }
+int is_empty(pile *pile) { 
+  
+  printf("200: pile is %p", pile); // kwccoin insert a print to check the pile value before coredump
+  return pile->num_cards == 0; } // kwccoin: dump here
 
 // remove a card from a pile, relinking the list
 void delete (pile *pile, card *card) {
@@ -322,7 +325,10 @@ enum {
   PILE_COUNT
 };
 
-char pile_types[] = "dwffffccccccc";
+char pile_types[] = "dwffffccccccc"; // kwccoin: orignal i.e. f5 is invlaid as it reachs to c but it will be invlaid up to f11 but problem with f12
+// char pile_types[] =    "dwffffccccccccc"; // kwccoin: may test f5 is invlaid as it reachs to c but it will be invlaid up to f11 but problem with f12
+
+// even extend 2 still same issue with c8 and f12 ... to be investigated
 
 typedef struct game_state {
   pile **piles;
@@ -730,6 +736,12 @@ int attempt_move(game_state *state, char *command) {
     // check if the move is valid based on the destination type
     if (parsed.destination == 'f') {
       // only ace goes if the destination is empty
+
+      if (destination_pile == (void *)0x21){
+        return MOVE_INVALID_DESTINATION;
+      }
+
+
       if (is_empty(destination_pile)) {
         if (source_card->rank == RANK_A) {
           move_card(state, source_card, source_pile, destination_pile);
@@ -747,7 +759,16 @@ int attempt_move(game_state *state, char *command) {
       }
     } else if (parsed.destination == 'c') {
       // king can go in an empty column
-      if (is_empty(destination_pile)) {
+      // kwccoin: not sure it is even a NULL Pointer
+
+      printf("758: destination_pile is %p", destination_pile); // kwccoin insert a print to check the pile value before coredump
+  
+
+      if (destination_pile == (void *)0x21){
+        return MOVE_INVALID_DESTINATION;
+      }
+
+      if (is_empty(destination_pile)) { // kwccoin: problem should be here
         if (source_card->rank == RANK_K) {
           move_card(state, source_card, source_pile, destination_pile);
         } else {

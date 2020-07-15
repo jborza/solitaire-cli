@@ -6,6 +6,7 @@
 cc -g -Wall -o pass-reference pass-reference.c */
 
 #include <stdio.h> // for printf()
+#include "loadLinkList.h"
 
 int arrayAdd1(int n)
 {
@@ -46,6 +47,14 @@ int addemUp (int a, int b, int *result) {
     return *result; // not result as it is a pointer nor *result but definitely not & result
 } // addemUp
 
+void printLinkList(struct linkList* inLinkList){
+    printf("pLL: structure list is %p, %c, %i, %p\n", 
+    inLinkList, 
+    inLinkList->aChar, 
+    inLinkList->anInt, 
+    inLinkList->aLinkList);
+}
+
 int main (int argc, char *argv[]) {
     int answer1, answer2;
     answer1=2;
@@ -66,6 +75,42 @@ int main (int argc, char *argv[]) {
     //   you cannot use &intArray as it would be "int (*)[10]"
     //   what expect is "int *"
     
+    struct linkList LL1;
+    struct linkList LL2;
+    struct linkList LL3;
+
+    loadLinkList(&LL1, 'a', 1, &LL3);
+    loadLinkList(&LL2, 'b', 2, &LL1);
+    loadLinkList(&LL3, 'c', 3, &LL2);
+
+    //struct linkList LL4 = {&LL4, 'd', 4, &LL3}; // not working except for simple structure
+    //struct linkList LL5;
+    //LL5 = (LinkList) {&LL4, 'd', 4, &LL3};
+
+    // pointer can be %p, %u, %x C99 use p
+    // %i/%d
+    // 
+
+    printf("LL1: structure list is %p, %c, %i, %p\n", &LL1, LL1.aChar, LL1.anInt, LL1.aLinkList);
+    printf("LL2: structure list is %p, %c, %i, %p\n", &LL2, LL2.aChar, LL2.anInt, LL2.aLinkList);
+    printf("LL3: structure list is %p, %c, %i, %p\n", &LL3, LL3.aChar, LL3.anInt, LL3.aLinkList);
+    //printf("LL4: structure list is %p, %c, %i, %p\n", &LL4, LL4.aChar, LL4.anInt, LL4.aLinkList);
+
+    // LL1/2/3 is a variable of "type" linkList and use .
+    // in the function you use pointer -> because the inLinkList 
+    //              pointer "type" and is a pointer to structure, 
+
+    printLinkList(&LL1);
+    printLinkList(&LL2);
+    printLinkList(&LL3);
+    //printLinkList(&LL4);
+
+    /* // core dump
+    long *lp = (void *)0x10000000;
+    for (int i = 0; i < 5; i++) {
+        printf ("%d: %lx\n", i, *lp);
+        lp++; }
+    */
 
     return (0);
 } // main
@@ -209,4 +254,40 @@ Breakpoint 2, main (argc=1, argv=0x7ffc824f8c78) at passR.c:17
 (gdb) x /4xw &answer1
 0x7ffc824f8b70:	0x00010002	0x00010002	0x86214000	0xb144a4b1
 (gdb) q
+*/
+
+/* // https://stackoverflow.com/questions/8019615/strings-and-character-with-printf
+
+#include<stdio.h>
+
+void main()
+{
+ char name[]="siva";
+ printf("name = %p\n", name);
+ printf("&name[0] = %p\n", &name[0]);
+ printf("name printed as %%s is %s\n",name);
+ printf("*name = %c\n",*name);
+ printf("name[0] = %c\n", name[0]);
+}
+Output is:
+
+name = 0xbff5391b  
+&name[0] = 0xbff5391b
+name printed as %s is siva
+*name = s
+name[0] = s
+So 'name' is actually a pointer to the array of characters in memory. If you try reading the first four bytes at 0xbff5391b, you will see 's', 'i', 'v' and 'a'
+
+Location     Data
+=========   ======
+
+0xbff5391b    0x73  's'  ---> name[0]
+0xbff5391c    0x69  'i'  ---> name[1]
+0xbff5391d    0x76  'v'  ---> name[2]
+0xbff5391e    0x61  'a'  ---> name[3]
+0xbff5391f    0x00  '\0' ---> This is the NULL termination of the string
+To print a character you need to pass the value of the character to printf. The value can be referenced as name[0] or *name (since for an array name = &name[0]).
+
+To print a string you need to pass a pointer to the string to printf (in this case 'name' or '&name[0]').
+
 */

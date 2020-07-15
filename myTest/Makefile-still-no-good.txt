@@ -1,0 +1,12 @@
+CC 		 = gcc
+CFLAGS   = -Wall -g
+DEPS 	 = loadLinkList.h
+LDFLAGS  = 
+OBJFILES = passR.o loadLinkList.o 
+
+%.o: %.c $(DEPS)
+	$(CC) $(CFLAGS) -c -o $@ $<
+passR: $(OBJ)
+	gcc $(CFLAGS) -o $@ $^
+clean:
+	rm -f $(OBJFILES) $(TARGET) *~
