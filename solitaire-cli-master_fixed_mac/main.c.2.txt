@@ -9,9 +9,6 @@
 
 //#define DEBUG_PRINT
 
-int HIGH_SCORE;
-
-
 // utility functions
 
 void *mallocz(size_t size) {
@@ -482,9 +479,9 @@ char *second_row_headers[] = {"Column 1", "Column 2", "Column 3", "Column 4",
 
 void print_prompt(game_state *state) {
   move(rows - 3, 0);
-  printw("Current Score: %d (Last High Score is %d)", state->score, HIGH_SCORE);
+  printw("Score: %d", state->score);
   move(rows - 1, 0);
-  printw("solitaire-cli (h for help)> ");
+  printw("solitaire-cli > ");
 }
 
 void debug_print_pile(pile *pile, int row, int column) {
@@ -810,21 +807,6 @@ int attempt_move(game_state *state, char *command) {
 }
 
 int main() {
-
-  FILE *fptr;
-
-  fptr = fopen("highScore.txt","r");
-
-  if(fptr == NULL){
-    HIGH_SCORE =0;
-  } else {
-    fscanf(fptr, "%i",&HIGH_SCORE);
-  }
-
-  fclose(fptr);
-
-
-
   srand(time(NULL));
   //  srand(3);
   setlocale(LC_ALL, "");
@@ -848,30 +830,10 @@ int main() {
     if (result == MOVE_QUIT) {
       // add these seems cannot save the command line
       // print_all_curses(state);
+      //getch();
       //end_curses();
-      //initscr(); // visual mode, no need if not
-      //erase();
-      refresh();
-      getch();
-      endwin();
       printf("high score is %d\n", state->score);       // may save and launch with the overall high score ???
-      
-      fptr = fopen("highScore.txt","w");
-
-      if(fptr == NULL){
-        printf("Error write HIGH_SCORE");
-        exit(1);
-      } else {
-        if (state->score < HIGH_SCORE){
-          state->score = HIGH_SCORE;
-        }
-        fprintf(fptr, "%i",state->score);
-      }
-
-      fclose(fptr);
-
-      
-      exit(0); 
+      return (0); 
     } else {
       print_all_curses(state);
     }
