@@ -4,7 +4,7 @@ sol:
 debug:
 	$(CC) -g -o solitaire -DUNICODE -Wall main.c -lncursesw -ltinfo
 dascii:
-	$(CC) -g -o solitaire -DUNICODE -Wall main.c -lncursesw -ltinfo
+	$(CC) -g -o solitaire -Wall main.c -lncursesw -ltinfo
 ascii:
 	$(CC) -o solitaire -Wall main.c -lncursesw -ltinfo
 
