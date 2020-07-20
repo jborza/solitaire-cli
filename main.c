@@ -9,6 +9,9 @@
 
 //#define DEBUG_PRINT
 
+int HIGH_SCORE;
+
+
 // utility functions
 
 void *mallocz(size_t size) {
@@ -71,13 +74,13 @@ const char *suit_to_charptr(int suit) {
 const char *suit_to_charptr(int suit) {
   switch (suit) {
   case SUIT_HEART:
-    return "H";
+    return "~H";
   case SUIT_SPADE:
-    return "S";
+    return "~S";
   case SUIT_CLUB:
-    return "C";
+    return "-c";
   case SUIT_DIAMOND:
-    return "D";
+    return "-d";
   default:
     return "?";
   }
@@ -479,9 +482,9 @@ char *second_row_headers[] = {"Column 1", "Column 2", "Column 3", "Column 4",
 
 void print_prompt(game_state *state) {
   move(rows - 3, 0);
-  printw("Score: %d", state->score);
+  printw("Current Score: %d (Last High Score is %d)", state->score, HIGH_SCORE);
   move(rows - 1, 0);
-  printw("solitaire-cli > ");
+  printw("solitaire-cli (h for help)> ");
 }
 
 void debug_print_pile(pile *pile, int row, int column) {
@@ -583,12 +586,15 @@ parsed_input parse_input(char *command) {
   parsed.success = 1;
   parsed.source_amount = 1;
   // parser patterns
-  char *pattern_multi_move = "%dc%d c%d";
-  char *pattern_single_move = "c%d %c%d";
-  char *pattern_single_move2 = "%d %d";
-  char *pattern_waste_move = "w %c%d";
-  char *pattern_multi_stock = "%ds";
-  char *pattern_stock = "s";
+  char *pattern_multi_move = "%dc%d c%d";  //kwc: #c#c#
+  char *pattern_single_move = "c%d %c%d";  //kwc: c#c#
+  char *pattern_single_move2 = "%d %d";    //kwc: ##
+  char *pattern_waste_move = "w %c%d";     //kwc: wf# or wc#
+  char *pattern_multi_stock = "%ds";       //kwc: #s
+  char *pattern_stock = "s";               //kwc: s
+  char *pattern_help = "h";                //kwc: h
+  char *pattern_quit = "quit";             //kwc: quit
+  char *pattern_refresh = "r";             //kwc: refresh
   if (sscanf(command, pattern_multi_move, &parsed.source_amount,
              &parsed.source_index, &parsed.destination_index) == 3) {
     parsed.source = 'c';
@@ -607,6 +613,12 @@ parsed_input parse_input(char *command) {
     parsed.source = 's';
   } else if (strcmp(command, pattern_stock) == 0) {
     parsed.source = 's';
+  } else if (strcmp(command, pattern_help) == 0) {
+    parsed.source = 'h';  
+  } else if (strcmp(command, pattern_refresh) == 0) {
+    parsed.source = 'r';
+  } else if (strcmp(command, pattern_quit) == 0) {
+    parsed.source = 'q';
   } else {
     parsed.success = 0;
   }
@@ -643,7 +655,10 @@ enum {
   MOVE_TOO_MANY_CARDS,
   MOVE_CANNOT_REDEAL,
   MOVE_INVALID_DESTINATION,
-  MOVE_INVALID_SOURCE
+  MOVE_INVALID_SOURCE,
+  MOVE_HELP,
+  MOVE_REFRESH,
+  MOVE_QUIT
 };
 char *move_results[] = {"OK",
                         "Invalid command",
@@ -651,7 +666,11 @@ char *move_results[] = {"OK",
                         "Invalid move",
                         "Too many cards to move!",
                         "Cannot redeal, stock pile empty",
-                        "Invalid destination", "Invalid source"};
+                        "Invalid destination",
+                         "Invalid source",
+                         "h, s, #s, wc#, wf#, ##, c#c#, c#f#, #c#c#, r, quit",
+                         "refresh",
+                         "quit"};
 
 void move_card(game_state *state, card *card, pile *source_pile,
                pile *destination_pile) {
@@ -686,21 +705,85 @@ int attempt_move(game_state *state, char *command) {
     return MOVE_INVALID_COMMAND;
   }
 
-  //catch source / destination too high
-  if((parsed.destination == 'c' && ((parsed.destination_index >= COLUMN_COUNT) || (parsed.destination_index < 1)))
-      || (parsed.destination == 'f' && ((parsed.destination_index >= FOUNDATION_COUNT) || (parsed.destination_index < 1))))
+  
+  /* kwc: checking why valgrind said there are uninitated :
+  
+    printf("parsed: %c %c %i %i %i %i $i\t\t", 
+    parsed.source, 
+    parsed.destination,
+    parsed.source_index,
+    parsed.destination_index,
+    parsed.source_amount,
+    parsed.success) ; */
+
+    /* rsed: s  48 28 1 1 $i		
+    parsed: r  48 28 1 1 $i		parsed: s  48 28 1 1 $i		
+    parsed: w c 48 5 1 1 $i		parsed: w f 48 4 1 1 $i		
+    parsed: c f 4 4 1 1 $i		parsed: w f 48 4 1 1 $i		
+    parsed: c f 7 4 1 1 $i		parsed: c f 7 2 1 1 $i		
+    parsed: c c 4 7 5 1 $i		parsed: c c 6 4 1 1 $i		
+    parsed: c c 6 3 1 1 $i		parsed: c f 6 1 1 1 $i		
+    parsed: c f 6 3 1 1 $i		parsed: c f 6 4 1 1 $i		
+    parsed: c f 7 1 1 1 $i		parsed: s  48 28 1 1 $i		
+    parsed: w f 48 2 1 1 $i		parsed: c f 7 2 1 1 $i		
+    parsed: s  48 28 1 1 $i		parsed: w f 48 1 1 1 $i		
+    parsed: r  48 28 1 1 $i		parsed: q  48 28 1 1 $i		
+    high score is 210
+    
+    command like s has no destination and 
+                 w has no source
+                 r (mine) has no either
+
+    But only the s has issues as one of the s command check destination
+    
+    */
+
+
+/*#ifdef DEBUG_PRINT
+  // debug: stock, waste
+  mvprintw(17, 0, "stock:");
+  debug_print_pile(stock_pile, 18, 0);
+  mvprintw(17, 16, "waste:");
+  debug_print_pile(waste_pile, 18, 16);
+  mvprintw(17, 32, "foundation 1:");
+  debug_print_pile(foundation(state, 1), 18, 32);
+  mvprintw(17, 48, "foundation 2:");
+  debug_print_pile(foundation(state, 2), 18, 48);
+  mvprintw(17, 64, "foundation 3:");
+  debug_print_pile(foundation(state, 3), 18, 64);
+  mvprintw(17, 80, "foundation 4:");
+  debug_print_pile(foundation(state, 4), 18, 80);
+//#endif */
+
+  //catch source is help
+  if(parsed.source == 'h' )
   {
-    return MOVE_INVALID_DESTINATION;
+    return MOVE_HELP;
   }
 
+  if(parsed.source == 'r' )
+  {
+    return MOVE_REFRESH;
+  }
+
+  //catch source is quit - just display message for the moment
+  if(parsed.source == 'q' )
+  {
+    return MOVE_QUIT;
+  }
+
+  // kwc: move some sources here seems to solve the problem of valgrind unitiated alert
   // source_index can also be broken
-  if(parsed.source == 'c' && ((parsed.source_index >= COLUMN_COUNT) || (parsed.source_index < 1))){
+
+  if(parsed.source == 'c' 
+  && ((parsed.source_index >= COLUMN_COUNT + 1) 
+  || (parsed.source_index < 1))){
     return MOVE_INVALID_SOURCE;
   }
 
   // figure out destination
   if (parsed.source == 's') {
-    for (int i = 0; i < parsed.source_amount; i++) {
+    for (int i = 0; i < parsed.source_amount; i++) { 
       if (is_empty(stock(state))) {
         // try to redeal
         if (is_empty(waste(state))) {
@@ -712,6 +795,24 @@ int attempt_move(game_state *state, char *command) {
     }
     return MOVE_OK;
   }
+  //catch source / destination too high // kwc: these should last to avoid unitiated
+  if(
+      (parsed.destination == 'c' // kwc: unitiated value detected
+
+      && ((parsed.destination_index >= COLUMN_COUNT + 1) 
+
+          || (parsed.destination_index < 1)))
+    || 
+      (parsed.destination == 'f' // kwc: unitiated value detected
+
+       && ((parsed.destination_index >= FOUNDATION_COUNT + 1) 
+
+           ||  (parsed.destination_index < 1))))
+  {
+    return MOVE_INVALID_DESTINATION;
+  }
+
+
   pile *source_pile = get_pile(state, parsed.source, parsed.source_index);
   pile *destination_pile =
       get_pile(state, parsed.destination, parsed.destination_index);
@@ -784,6 +885,20 @@ int attempt_move(game_state *state, char *command) {
 }
 
 int main() {
+
+  FILE *fptr;
+
+  fptr = fopen("highScore.txt","r");
+
+  if(fptr == NULL){
+    HIGH_SCORE =0;
+  } else {
+    fscanf(fptr, "%i",&HIGH_SCORE);
+  }
+
+  fclose(fptr);
+
+
   srand(time(NULL));
   //  srand(3);
   setlocale(LC_ALL, "");
@@ -804,8 +919,36 @@ int main() {
     int result = attempt_move(state, buffer);
     mvprintw(rows - 2, 0, "Move status: %s", move_results[result]);
     // show new status in the status bar
-    print_all_curses(state);
+    if (result == MOVE_REFRESH){
+      erase();
+      refresh();
+      print_all_curses(state);
+    } else if (result == MOVE_QUIT) {
+      // add these seems cannot save the command line
+      // print_all_curses(state);
+      //end_curses();
+      //initscr(); // visual mode, no need if not
+      //erase() 
+      refresh();
+      getch();
+      endwin();
+      printf("high score is %d\n", state->score);       // may save and launch with the overall high score ???
+      fptr = fopen("highScore.txt","w");
+      if(fptr == NULL){
+        printf("Error write HIGH_SCORE");
+        exit(1);
+      } else {
+        if (state->score < HIGH_SCORE){
+          state->score = HIGH_SCORE;
+        }
+        fprintf(fptr, "%i",state->score);
+      }
+      fclose(fptr);
+      exit(0); 
+    } else {
+      print_all_curses(state);
+    }
   }
-  getch();
-  end_curses();
+  getch();      // not sure about these 2 lines
+  end_curses(); // add this but still not ok; the command line broken
 }
