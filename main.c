@@ -894,10 +894,8 @@ int main() {
     HIGH_SCORE =0;
   } else {
     fscanf(fptr, "%i",&HIGH_SCORE);
+    fclose(fptr);
   }
-
-  fclose(fptr);
-
 
   srand(time(NULL));
   //  srand(3);
